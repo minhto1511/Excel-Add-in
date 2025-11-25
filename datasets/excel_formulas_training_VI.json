@@ -1,0 +1,453 @@
+[
+  {
+    "id": "001",
+    "category": "SUM",
+    "query_vi": "Tính tổng cột A",
+    "formula": "=SUM(A:A)",
+    "explanation_vi": "Hàm SUM cộng tất cả giá trị số trong cột A",
+    "example": "Nếu A1=10, A2=20, A3=30, kết quả = 60",
+    "difficulty": "basic"
+  },
+  {
+    "id": "002",
+    "category": "SUM",
+    "query_vi": "Tính tổng từ A1 đến A10",
+    "formula": "=SUM(A1:A10)",
+    "explanation_vi": "Hàm SUM với vùng cụ thể từ A1 đến A10",
+    "example": "Cộng các giá trị trong ô A1, A2, ..., A10",
+    "difficulty": "basic"
+  },
+  {
+    "id": "003",
+    "category": "SUM",
+    "query_vi": "Tính tổng 4 cột A, B, C, D",
+    "formula": "=SUM(A:A,B:B,C:C,D:D)",
+    "explanation_vi": "Hàm SUM có thể cộng nhiều cột bằng cách ngăn cách bởi dấu phẩy, hoặc dùng SUM(A:D) cho vùng liên tục",
+    "example": "Nếu tổng A=100, B=200, C=300, D=400, kết quả = 1000",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "004",
+    "category": "SUM",
+    "query_vi": "Tính tổng cột A đến D từ hàng 2 đến hàng 100",
+    "formula": "=SUM(A2:D100)",
+    "explanation_vi": "Hàm SUM với vùng chữ nhật từ A2 đến D100 (4 cột, 99 hàng)",
+    "example": "Cộng tất cả giá trị trong vùng chữ nhật đã chỉ định",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "005",
+    "category": "AVERAGE",
+    "query_vi": "Tính trung bình cột B",
+    "formula": "=AVERAGE(B:B)",
+    "explanation_vi": "Hàm AVERAGE tính trung bình cộng của tất cả số trong cột B",
+    "example": "Nếu B1=100, B2=200, B3=300, kết quả = 200",
+    "difficulty": "basic"
+  },
+  {
+    "id": "006",
+    "category": "AVERAGE",
+    "query_vi": "Tính trung bình từ B2 đến B50",
+    "formula": "=AVERAGE(B2:B50)",
+    "explanation_vi": "Hàm AVERAGE với vùng cụ thể từ B2 đến B50",
+    "example": "Tính trung bình của 49 giá trị",
+    "difficulty": "basic"
+  },
+  {
+    "id": "007",
+    "category": "AVERAGE",
+    "query_vi": "Tính trung bình của ba cột A, B, C",
+    "formula": "=AVERAGE(A:A,B:B,C:C)",
+    "explanation_vi": "Hàm AVERAGE cho nhiều cột",
+    "example": "Tính trung bình tất cả giá trị trên ba cột",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "008",
+    "category": "AVERAGEIF",
+    "query_vi": "Tính trung bình cột A nếu cột B lớn hơn 100",
+    "formula": "=AVERAGEIF(B:B,\">100\",A:A)",
+    "explanation_vi": "AVERAGEIF tính trung bình giá trị A chỉ khi giá trị B tương ứng > 100",
+    "example": "Nếu B1=150,A1=50; B2=80,A2=30; B3=200,A3=70 → trung bình của 50 và 70 = 60",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "009",
+    "category": "COUNT",
+    "query_vi": "Đếm số ô không rỗng trong cột A",
+    "formula": "=COUNTA(A:A)",
+    "explanation_vi": "COUNTA đếm tất cả ô không rỗng (số, chữ, ngày) trong cột A",
+    "example": "Nếu cột A có 5 ô có dữ liệu và 3 ô trống, kết quả = 5",
+    "difficulty": "basic"
+  },
+  {
+    "id": "010",
+    "category": "COUNT",
+    "query_vi": "Đếm số ô không rỗng từ A1 đến A100",
+    "formula": "=COUNTA(A1:A100)",
+    "explanation_vi": "COUNTA với vùng cụ thể",
+    "example": "Đếm có bao nhiêu ô có dữ liệu",
+    "difficulty": "basic"
+  },
+  {
+    "id": "011",
+    "category": "COUNTIF",
+    "query_vi": "Đếm có bao nhiêu ô trong cột A lớn hơn 50",
+    "formula": "=COUNTIF(A:A,\">50\")",
+    "explanation_vi": "COUNTIF đếm các ô thỏa mãn điều kiện cụ thể",
+    "example": "Nếu A1=60, A2=40, A3=70, A4=30 → kết quả = 2 (60 và 70)",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "012",
+    "category": "COUNTIF",
+    "query_vi": "Đếm có bao nhiêu lần 'Hoàn thành' xuất hiện trong cột B",
+    "formula": "=COUNTIF(B:B,\"Hoàn thành\")",
+    "explanation_vi": "COUNTIF với điều kiện text (không phân biệt hoa thường)",
+    "example": "Nếu B có 3 ô 'Hoàn thành' và 2 ô 'Đang xử lý' → kết quả = 3",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "013",
+    "category": "MAX/MIN",
+    "query_vi": "Tìm giá trị lớn nhất trong cột C",
+    "formula": "=MAX(C:C)",
+    "explanation_vi": "MAX trả về số lớn nhất trong cột C",
+    "example": "Nếu C có 10, 50, 30, 80, 20 → kết quả = 80",
+    "difficulty": "basic"
+  },
+  {
+    "id": "014",
+    "category": "MAX/MIN",
+    "query_vi": "Tìm giá trị nhỏ nhất từ D1 đến D50",
+    "formula": "=MIN(D1:D50)",
+    "explanation_vi": "MIN trả về số nhỏ nhất trong vùng",
+    "example": "Trả về giá trị thấp nhất",
+    "difficulty": "basic"
+  },
+  {
+    "id": "015",
+    "category": "MAX/MIN",
+    "query_vi": "Tìm giá trị lớn nhất trong các cột A, B, C, D",
+    "formula": "=MAX(A:A,B:B,C:C,D:D)",
+    "explanation_vi": "MAX có thể so sánh giá trị trên nhiều cột",
+    "example": "Trả về giá trị cao nhất trong tất cả bốn cột",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "016",
+    "category": "IF",
+    "query_vi": "Nếu A1 lớn hơn 100 thì hiển thị 'Cao', không thì hiển thị 'Thấp'",
+    "formula": "=IF(A1>100,\"Cao\",\"Thấp\")",
+    "explanation_vi": "Hàm IF kiểm tra điều kiện và trả về giá trị khác nhau dựa trên TRUE hoặc FALSE",
+    "example": "Nếu A1=150 → 'Cao', nếu A1=80 → 'Thấp'",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "017",
+    "category": "IF",
+    "query_vi": "Nếu cột B là 'Đạt' thì lấy giá trị cột C",
+    "formula": "=IF(B1=\"Đạt\",C1,\"\")",
+    "explanation_vi": "IF với so sánh text, trả về giá trị hoặc chuỗi rỗng",
+    "example": "Nếu B1='Đạt' và C1=95 → trả về 95",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "018",
+    "category": "IF",
+    "query_vi": "Nếu A1 > 50 VÀ B1 < 100 thì hiển thị 'Hợp lệ'",
+    "formula": "=IF(AND(A1>50,B1<100),\"Hợp lệ\",\"Không hợp lệ\")",
+    "explanation_vi": "IF với hàm AND kiểm tra nhiều điều kiện (tất cả phải TRUE)",
+    "example": "Nếu A1=60 và B1=80 → 'Hợp lệ'",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "019",
+    "category": "IF",
+    "query_vi": "Nếu A1 > 50 HOẶC B1 < 100 thì hiển thị 'Đạt'",
+    "formula": "=IF(OR(A1>50,B1<100),\"Đạt\",\"Không đạt\")",
+    "explanation_vi": "IF với hàm OR kiểm tra nhiều điều kiện (ít nhất một phải TRUE)",
+    "example": "Nếu A1=60 hoặc B1=80 (một trong hai hoặc cả hai) → 'Đạt'",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "020",
+    "category": "SUMIF",
+    "query_vi": "Tính tổng cột D nếu cột C là 'Hoàn thành'",
+    "formula": "=SUMIF(C:C,\"Hoàn thành\",D:D)",
+    "explanation_vi": "SUMIF cộng giá trị trong D chỉ khi ô C tương ứng bằng 'Hoàn thành'",
+    "example": "Nếu C1='Hoàn thành',D1=100; C2='Đang xử lý',D2=50 → kết quả = 100",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "021",
+    "category": "SUMIF",
+    "query_vi": "Tính tổng doanh thu cột D nếu tháng trong cột A bằng 1",
+    "formula": "=SUMIF(A:A,1,D:D)",
+    "explanation_vi": "SUMIF với điều kiện số",
+    "example": "Cộng tất cả giá trị D khi A=1 (tháng 1)",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "022",
+    "category": "SUMIF",
+    "query_vi": "Tính tổng lương cột E nếu phòng ban cột B là 'Kinh doanh'",
+    "formula": "=SUMIF(B:B,\"Kinh doanh\",E:E)",
+    "explanation_vi": "SUMIF để tính tổng theo phòng ban",
+    "example": "Tổng lương của phòng Kinh doanh",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "023",
+    "category": "SUMIFS",
+    "query_vi": "Tính tổng cột D nếu cột A là 'Nam' VÀ cột B > 25",
+    "formula": "=SUMIFS(D:D,A:A,\"Nam\",B:B,\">25\")",
+    "explanation_vi": "SUMIFS cho phép nhiều điều kiện (tất cả phải TRUE)",
+    "example": "Cộng D chỉ khi A='Nam' VÀ B>25",
+    "difficulty": "expert"
+  },
+  {
+    "id": "024",
+    "category": "SUMIFS",
+    "query_vi": "Tính tổng doanh thu nếu khu vực là 'Hà Nội' VÀ trạng thái là 'Hoàn thành'",
+    "formula": "=SUMIFS(D:D,B:B,\"Hà Nội\",C:C,\"Hoàn thành\")",
+    "explanation_vi": "SUMIFS với hai điều kiện text",
+    "example": "Tổng doanh thu cho đơn hàng hoàn thành ở Hà Nội",
+    "difficulty": "expert"
+  },
+  {
+    "id": "025",
+    "category": "VLOOKUP",
+    "query_vi": "Tìm giá trị trong bảng A:D và trả về cột thứ 3",
+    "formula": "=VLOOKUP(F1,A:D,3,FALSE)",
+    "explanation_vi": "VLOOKUP tìm kiếm F1 trong cột đầu tiên của A:D và trả về giá trị từ cột thứ 3",
+    "example": "Nếu F1='Táo' và bảng có Táo ở hàng 5, trả về giá trị từ D5",
+    "difficulty": "expert"
+  },
+  {
+    "id": "026",
+    "category": "VLOOKUP",
+    "query_vi": "Tìm kiếm chính xác từ sheet khác",
+    "formula": "=VLOOKUP(A1,Sheet2!A:C,2,FALSE)",
+    "explanation_vi": "VLOOKUP có thể tham chiếu dữ liệu trong sheet khác",
+    "example": "Tìm A1 trong Sheet2 và trả về giá trị cột thứ 2",
+    "difficulty": "expert"
+  },
+  {
+    "id": "027",
+    "category": "TEXT",
+    "query_vi": "Nối họ ở cột A và tên ở cột B",
+    "formula": "=A1&\" \"&B1",
+    "explanation_vi": "Toán tử & nối text với khoảng trắng ở giữa",
+    "example": "Nếu A1='Nguyễn', B1='An' → 'Nguyễn An'",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "028",
+    "category": "TEXT",
+    "query_vi": "Ghép 3 cột A, B, C với dấu gạch ngang",
+    "formula": "=A1&\"-\"&B1&\"-\"&C1",
+    "explanation_vi": "Nối nhiều cột với ký tự phân cách tùy chỉnh",
+    "example": "Nếu A1='2024', B1='01', C1='15' → '2024-01-15'",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "029",
+    "category": "TEXT",
+    "query_vi": "Lấy 5 ký tự đầu tiên từ cột A",
+    "formula": "=LEFT(A1,5)",
+    "explanation_vi": "Hàm LEFT trích xuất số ký tự chỉ định từ đầu",
+    "example": "Nếu A1='Xin chào' → 'Xin c'",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "030",
+    "category": "TEXT",
+    "query_vi": "Lấy 3 ký tự cuối cùng từ cột B",
+    "formula": "=RIGHT(B1,3)",
+    "explanation_vi": "Hàm RIGHT trích xuất ký tự từ cuối",
+    "example": "Nếu B1='ABC123' → '123'",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "031",
+    "category": "TEXT",
+    "query_vi": "Trích xuất 3 ký tự bắt đầu từ vị trí thứ 5",
+    "formula": "=MID(A1,5,3)",
+    "explanation_vi": "MID trích xuất chuỗi con từ giữa (vị trí bắt đầu, độ dài)",
+    "example": "Nếu A1='Xin chào thế giới' → ' ch'",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "032",
+    "category": "TEXT",
+    "query_vi": "Chuyển text trong cột A sang chữ hoa",
+    "formula": "=UPPER(A1)",
+    "explanation_vi": "UPPER chuyển tất cả chữ cái thành chữ in hoa",
+    "example": "Nếu A1='xin chào' → 'XIN CHÀO'",
+    "difficulty": "basic"
+  },
+  {
+    "id": "033",
+    "category": "TEXT",
+    "query_vi": "Chuyển text trong cột A sang chữ thường",
+    "formula": "=LOWER(A1)",
+    "explanation_vi": "LOWER chuyển tất cả chữ cái thành chữ thường",
+    "example": "Nếu A1='XIN CHÀO' → 'xin chào'",
+    "difficulty": "basic"
+  },
+  {
+    "id": "034",
+    "category": "TEXT",
+    "query_vi": "Đếm số ký tự trong cột A",
+    "formula": "=LEN(A1)",
+    "explanation_vi": "LEN trả về độ dài của chuỗi text",
+    "example": "Nếu A1='Xin chào' → 8",
+    "difficulty": "basic"
+  },
+  {
+    "id": "035",
+    "category": "TEXT",
+    "query_vi": "Xóa khoảng trắng thừa đầu và cuối text",
+    "formula": "=TRIM(A1)",
+    "explanation_vi": "TRIM xóa khoảng trắng thừa (giữ một khoảng trắng giữa các từ)",
+    "example": "Nếu A1='  Xin   chào  ' → 'Xin chào'",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "036",
+    "category": "DATE",
+    "query_vi": "Lấy ngày hôm nay",
+    "formula": "=TODAY()",
+    "explanation_vi": "TODAY trả về ngày hiện tại (tự động cập nhật)",
+    "example": "Trả về ngày hôm nay, ví dụ: 2024-10-28",
+    "difficulty": "basic"
+  },
+  {
+    "id": "037",
+    "category": "DATE",
+    "query_vi": "Lấy ngày và giờ hiện tại",
+    "formula": "=NOW()",
+    "explanation_vi": "NOW trả về ngày và giờ hiện tại",
+    "example": "Trả về timestamp hiện tại, ví dụ: 2024-10-28 14:30:00",
+    "difficulty": "basic"
+  },
+  {
+    "id": "038",
+    "category": "DATE",
+    "query_vi": "Trích xuất năm từ ngày trong cột B",
+    "formula": "=YEAR(B1)",
+    "explanation_vi": "YEAR trích xuất phần năm từ một ngày",
+    "example": "Nếu B1='2024-10-28' → 2024",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "039",
+    "category": "DATE",
+    "query_vi": "Trích xuất tháng từ ngày trong cột B",
+    "formula": "=MONTH(B1)",
+    "explanation_vi": "MONTH trích xuất số tháng (1-12) từ một ngày",
+    "example": "Nếu B1='2024-10-28' → 10",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "040",
+    "category": "DATE",
+    "query_vi": "Trích xuất ngày từ ngày tháng trong cột B",
+    "formula": "=DAY(B1)",
+    "explanation_vi": "DAY trích xuất ngày trong tháng (1-31) từ một ngày",
+    "example": "Nếu B1='2024-10-28' → 28",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "041",
+    "category": "DATE",
+    "query_vi": "Tính số ngày giữa hai ngày",
+    "formula": "=B1-A1",
+    "explanation_vi": "Trừ ngày sớm hơn khỏi ngày muộn hơn để lấy hiệu số ngày",
+    "example": "Nếu A1='2024-01-01', B1='2024-01-10' → 9 ngày",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "042",
+    "category": "DATE",
+    "query_vi": "Tính số tháng giữa hai ngày",
+    "formula": "=DATEDIF(A1,B1,\"M\")",
+    "explanation_vi": "DATEDIF với tham số 'M' trả về số tháng đầy đủ giữa các ngày",
+    "example": "Nếu A1='2024-01-01', B1='2024-06-01' → 5 tháng",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "043",
+    "category": "DATE",
+    "query_vi": "Thêm 30 ngày vào ngày trong cột A",
+    "formula": "=A1+30",
+    "explanation_vi": "Cộng số vào ngày để lấy ngày trong tương lai",
+    "example": "Nếu A1='2024-01-01' → '2024-01-31'",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "044",
+    "category": "DATE",
+    "query_vi": "Lấy ngày cuối cùng của tháng cho ngày trong A1",
+    "formula": "=EOMONTH(A1,0)",
+    "explanation_vi": "EOMONTH trả về ngày cuối tháng (0 cho tháng hiện tại, 1 cho tháng sau, v.v.)",
+    "example": "Nếu A1='2024-01-15' → '2024-01-31'",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "045",
+    "category": "NESTED",
+    "query_vi": "Nếu A1 > B1 thì lấy A1, không thì nếu B1 > C1 thì lấy B1, không thì C1",
+    "formula": "=IF(A1>B1,A1,IF(B1>C1,B1,C1))",
+    "explanation_vi": "Hàm IF lồng nhau cho nhiều điều kiện (logic thác nước)",
+    "example": "Trả về giá trị cao nhất dựa trên điều kiện",
+    "difficulty": "expert"
+  },
+  {
+    "id": "046",
+    "category": "NESTED",
+    "query_vi": "Tính thưởng: >100 triệu: 10%, 50-100 triệu: 5%, <50 triệu: 2%",
+    "formula": "=IF(A1>100000000,A1*0.1,IF(A1>=50000000,A1*0.05,A1*0.02))",
+    "explanation_vi": "Tính hoa hồng phân tầng sử dụng IF lồng nhau",
+    "example": "Nếu A1=120 triệu → 12 triệu, nếu A1=70 triệu → 3.5 triệu, nếu A1=30 triệu → 600 nghìn",
+    "difficulty": "expert"
+  },
+  {
+    "id": "047",
+    "category": "NESTED",
+    "query_vi": "VLOOKUP an toàn trả về 'Không tìm thấy' nếu lỗi",
+    "formula": "=IFERROR(VLOOKUP(A1,C:E,2,FALSE),\"Không tìm thấy\")",
+    "explanation_vi": "IFERROR bao bọc VLOOKUP để xử lý trường hợp tìm kiếm thất bại",
+    "example": "Trả về giá trị nếu tìm thấy, 'Không tìm thấy' nếu A1 không tồn tại trong C:E",
+    "difficulty": "expert"
+  },
+  {
+    "id": "048",
+    "category": "STATISTICAL",
+    "query_vi": "Tính độ lệch chuẩn của cột A",
+    "formula": "=STDEV.P(A:A)",
+    "explanation_vi": "STDEV.P tính độ lệch chuẩn của tổng thể",
+    "example": "Đo độ phân tán của dữ liệu trong cột A",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "049",
+    "category": "STATISTICAL",
+    "query_vi": "Tìm giá trị trung vị của cột B",
+    "formula": "=MEDIAN(B:B)",
+    "explanation_vi": "MEDIAN trả về giá trị ở giữa khi dữ liệu được sắp xếp",
+    "example": "Nếu B có 1,2,3,4,5 → 3",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "050",
+    "category": "STATISTICAL",
+    "query_vi": "Tìm giá trị lớn thứ 3 trong vùng A1:A100",
+    "formula": "=LARGE(A1:A100,3)",
+    "explanation_vi": "LARGE trả về giá trị lớn thứ k (thứ 3 trong trường hợp này)",
+    "example": "Nếu các giá trị cao nhất là 100,95,90,85 → trả về 90",
+    "difficulty": "advanced"
+  }
+]
+

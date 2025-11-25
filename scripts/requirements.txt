@@ -1,0 +1,24 @@
+# Requirements for Excel Dataset Collection & Translation Scripts
+# Install: pip install -r requirements.txt
+
+# Core
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Web scraping
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# Translation
+openai>=1.3.0
+googletrans==3.1.0a0
+
+# Machine Learning (optional, for quality checks)
+sentence-transformers>=2.2.0
+scikit-learn>=1.3.0
+
+# Utilities
+tqdm>=4.65.0
+python-dotenv>=1.0.0
+

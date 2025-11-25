@@ -1,0 +1,453 @@
+[
+  {
+    "id": "001",
+    "category": "SUM",
+    "query_en": "Calculate the sum of column A",
+    "formula": "=SUM(A:A)",
+    "explanation_en": "SUM function adds all numeric values in column A",
+    "example": "If A1=10, A2=20, A3=30, result = 60",
+    "difficulty": "basic"
+  },
+  {
+    "id": "002",
+    "category": "SUM",
+    "query_en": "Sum from A1 to A10",
+    "formula": "=SUM(A1:A10)",
+    "explanation_en": "SUM function with specific range from A1 to A10",
+    "example": "Adds values in cells A1, A2, ..., A10",
+    "difficulty": "basic"
+  },
+  {
+    "id": "003",
+    "category": "SUM",
+    "query_en": "Calculate total of columns A, B, C, and D",
+    "formula": "=SUM(A:A,B:B,C:C,D:D)",
+    "explanation_en": "SUM function can add multiple columns by separating with commas, or use SUM(A:D) for continuous range",
+    "example": "If A total=100, B=200, C=300, D=400, result = 1000",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "004",
+    "category": "SUM",
+    "query_en": "Sum column A to D from row 2 to row 100",
+    "formula": "=SUM(A2:D100)",
+    "explanation_en": "SUM function with rectangular range from A2 to D100 (4 columns, 99 rows)",
+    "example": "Adds all values in the specified rectangular area",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "005",
+    "category": "AVERAGE",
+    "query_en": "Calculate average of column B",
+    "formula": "=AVERAGE(B:B)",
+    "explanation_en": "AVERAGE function calculates arithmetic mean of all numbers in column B",
+    "example": "If B1=100, B2=200, B3=300, result = 200",
+    "difficulty": "basic"
+  },
+  {
+    "id": "006",
+    "category": "AVERAGE",
+    "query_en": "Average from B2 to B50",
+    "formula": "=AVERAGE(B2:B50)",
+    "explanation_en": "AVERAGE function with specific range from B2 to B50",
+    "example": "Calculates mean of 49 values",
+    "difficulty": "basic"
+  },
+  {
+    "id": "007",
+    "category": "AVERAGE",
+    "query_en": "Average of three columns A, B, and C",
+    "formula": "=AVERAGE(A:A,B:B,C:C)",
+    "explanation_en": "AVERAGE function for multiple columns",
+    "example": "Calculates average of all values across the three columns",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "008",
+    "category": "AVERAGEIF",
+    "query_en": "Average column A if column B is greater than 100",
+    "formula": "=AVERAGEIF(B:B,\">100\",A:A)",
+    "explanation_en": "AVERAGEIF calculates average of A values only where corresponding B value > 100",
+    "example": "If B1=150,A1=50; B2=80,A2=30; B3=200,A3=70 → average of 50 and 70 = 60",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "009",
+    "category": "COUNT",
+    "query_en": "Count non-empty cells in column A",
+    "formula": "=COUNTA(A:A)",
+    "explanation_en": "COUNTA counts all non-empty cells (numbers, text, dates) in column A",
+    "example": "If A has 5 filled cells and 3 empty, result = 5",
+    "difficulty": "basic"
+  },
+  {
+    "id": "010",
+    "category": "COUNT",
+    "query_en": "Count non-empty cells from A1 to A100",
+    "formula": "=COUNTA(A1:A100)",
+    "explanation_en": "COUNTA with specific range",
+    "example": "Counts how many cells have data",
+    "difficulty": "basic"
+  },
+  {
+    "id": "011",
+    "category": "COUNTIF",
+    "query_en": "Count how many cells in column A are greater than 50",
+    "formula": "=COUNTIF(A:A,\">50\")",
+    "explanation_en": "COUNTIF counts cells meeting specific criteria",
+    "example": "If A1=60, A2=40, A3=70, A4=30 → result = 2 (60 and 70)",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "012",
+    "category": "COUNTIF",
+    "query_en": "Count how many times 'Completed' appears in column B",
+    "formula": "=COUNTIF(B:B,\"Completed\")",
+    "explanation_en": "COUNTIF with text criteria (case-insensitive)",
+    "example": "If B has 3 'Completed' and 2 'Pending' → result = 3",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "013",
+    "category": "MAX/MIN",
+    "query_en": "Find the maximum value in column C",
+    "formula": "=MAX(C:C)",
+    "explanation_en": "MAX returns the largest number in column C",
+    "example": "If C has 10, 50, 30, 80, 20 → result = 80",
+    "difficulty": "basic"
+  },
+  {
+    "id": "014",
+    "category": "MAX/MIN",
+    "query_en": "Find the minimum value from D1 to D50",
+    "formula": "=MIN(D1:D50)",
+    "explanation_en": "MIN returns the smallest number in the range",
+    "example": "Returns the lowest value",
+    "difficulty": "basic"
+  },
+  {
+    "id": "015",
+    "category": "MAX/MIN",
+    "query_en": "Find maximum across columns A, B, C, and D",
+    "formula": "=MAX(A:A,B:B,C:C,D:D)",
+    "explanation_en": "MAX can compare values across multiple columns",
+    "example": "Returns the highest value among all four columns",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "016",
+    "category": "IF",
+    "query_en": "If A1 is greater than 100, show 'High', otherwise show 'Low'",
+    "formula": "=IF(A1>100,\"High\",\"Low\")",
+    "explanation_en": "IF function checks condition and returns different values based on TRUE or FALSE",
+    "example": "If A1=150 → 'High', if A1=80 → 'Low'",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "017",
+    "category": "IF",
+    "query_en": "If column B is 'Pass', return column C value",
+    "formula": "=IF(B1=\"Pass\",C1,\"\")",
+    "explanation_en": "IF with text comparison, returns value or empty string",
+    "example": "If B1='Pass' and C1=95 → returns 95",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "018",
+    "category": "IF",
+    "query_en": "If A1 > 50 AND B1 < 100, show 'Valid'",
+    "formula": "=IF(AND(A1>50,B1<100),\"Valid\",\"Invalid\")",
+    "explanation_en": "IF with AND function checks multiple conditions (all must be TRUE)",
+    "example": "If A1=60 and B1=80 → 'Valid'",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "019",
+    "category": "IF",
+    "query_en": "If A1 > 50 OR B1 < 100, show 'Pass'",
+    "formula": "=IF(OR(A1>50,B1<100),\"Pass\",\"Fail\")",
+    "explanation_en": "IF with OR function checks multiple conditions (at least one must be TRUE)",
+    "example": "If A1=60 or B1=80 (either/both) → 'Pass'",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "020",
+    "category": "SUMIF",
+    "query_en": "Sum column D where column C is 'Completed'",
+    "formula": "=SUMIF(C:C,\"Completed\",D:D)",
+    "explanation_en": "SUMIF adds values in D only where corresponding C cell equals 'Completed'",
+    "example": "If C1='Completed',D1=100; C2='Pending',D2=50 → result = 100",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "021",
+    "category": "SUMIF",
+    "query_en": "Sum revenue in column D where month in column A equals 1",
+    "formula": "=SUMIF(A:A,1,D:D)",
+    "explanation_en": "SUMIF with numeric criteria",
+    "example": "Sums all D values where A=1 (January)",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "022",
+    "category": "SUMIF",
+    "query_en": "Sum salary in column E where department in column B is 'Sales'",
+    "formula": "=SUMIF(B:B,\"Sales\",E:E)",
+    "explanation_en": "SUMIF for department-based summation",
+    "example": "Total salary for Sales department only",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "023",
+    "category": "SUMIFS",
+    "query_en": "Sum column D where column A is 'Male' AND column B > 25",
+    "formula": "=SUMIFS(D:D,A:A,\"Male\",B:B,\">25\")",
+    "explanation_en": "SUMIFS allows multiple criteria (all must be TRUE)",
+    "example": "Sums D only where A='Male' AND B>25",
+    "difficulty": "expert"
+  },
+  {
+    "id": "024",
+    "category": "SUMIFS",
+    "query_en": "Sum revenue where region is 'Hanoi' AND status is 'Completed'",
+    "formula": "=SUMIFS(D:D,B:B,\"Hanoi\",C:C,\"Completed\")",
+    "explanation_en": "SUMIFS with two text criteria",
+    "example": "Total revenue for completed Hanoi orders only",
+    "difficulty": "expert"
+  },
+  {
+    "id": "025",
+    "category": "VLOOKUP",
+    "query_en": "Lookup value in table A:D and return column 3",
+    "formula": "=VLOOKUP(F1,A:D,3,FALSE)",
+    "explanation_en": "VLOOKUP searches for F1 in first column of A:D and returns value from 3rd column",
+    "example": "If F1='Apple' and table has Apple in row 5, returns value from D5",
+    "difficulty": "expert"
+  },
+  {
+    "id": "026",
+    "category": "VLOOKUP",
+    "query_en": "Exact lookup from another sheet",
+    "formula": "=VLOOKUP(A1,Sheet2!A:C,2,FALSE)",
+    "explanation_en": "VLOOKUP can reference data in different sheets",
+    "example": "Looks up A1 in Sheet2 and returns 2nd column value",
+    "difficulty": "expert"
+  },
+  {
+    "id": "027",
+    "category": "TEXT",
+    "query_en": "Concatenate first name in column A and last name in column B",
+    "formula": "=A1&\" \"&B1",
+    "explanation_en": "& operator concatenates text with space in between",
+    "example": "If A1='John', B1='Doe' → 'John Doe'",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "028",
+    "category": "TEXT",
+    "query_en": "Join columns A, B, C with dash separator",
+    "formula": "=A1&\"-\"&B1&\"-\"&C1",
+    "explanation_en": "Concatenate multiple columns with custom separator",
+    "example": "If A1='2024', B1='01', C1='15' → '2024-01-15'",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "029",
+    "category": "TEXT",
+    "query_en": "Get first 5 characters from column A",
+    "formula": "=LEFT(A1,5)",
+    "explanation_en": "LEFT function extracts specified number of characters from start",
+    "example": "If A1='Hello World' → 'Hello'",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "030",
+    "category": "TEXT",
+    "query_en": "Get last 3 characters from column B",
+    "formula": "=RIGHT(B1,3)",
+    "explanation_en": "RIGHT function extracts characters from end",
+    "example": "If B1='ABC123' → '123'",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "031",
+    "category": "TEXT",
+    "query_en": "Extract 3 characters starting from position 5",
+    "formula": "=MID(A1,5,3)",
+    "explanation_en": "MID extracts substring from middle (starting position, length)",
+    "example": "If A1='Hello World' → 'o W'",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "032",
+    "category": "TEXT",
+    "query_en": "Convert text in column A to uppercase",
+    "formula": "=UPPER(A1)",
+    "explanation_en": "UPPER converts all letters to uppercase",
+    "example": "If A1='hello' → 'HELLO'",
+    "difficulty": "basic"
+  },
+  {
+    "id": "033",
+    "category": "TEXT",
+    "query_en": "Convert text in column A to lowercase",
+    "formula": "=LOWER(A1)",
+    "explanation_en": "LOWER converts all letters to lowercase",
+    "example": "If A1='HELLO' → 'hello'",
+    "difficulty": "basic"
+  },
+  {
+    "id": "034",
+    "category": "TEXT",
+    "query_en": "Count the number of characters in column A",
+    "formula": "=LEN(A1)",
+    "explanation_en": "LEN returns the length of text string",
+    "example": "If A1='Hello' → 5",
+    "difficulty": "basic"
+  },
+  {
+    "id": "035",
+    "category": "TEXT",
+    "query_en": "Remove leading and trailing spaces from text",
+    "formula": "=TRIM(A1)",
+    "explanation_en": "TRIM removes extra spaces (keeps single space between words)",
+    "example": "If A1='  Hello   World  ' → 'Hello World'",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "036",
+    "category": "DATE",
+    "query_en": "Get today's date",
+    "formula": "=TODAY()",
+    "explanation_en": "TODAY returns current date (updates automatically)",
+    "example": "Returns today's date, e.g., 2024-10-28",
+    "difficulty": "basic"
+  },
+  {
+    "id": "037",
+    "category": "DATE",
+    "query_en": "Get current date and time",
+    "formula": "=NOW()",
+    "explanation_en": "NOW returns current date and time",
+    "example": "Returns current timestamp, e.g., 2024-10-28 14:30:00",
+    "difficulty": "basic"
+  },
+  {
+    "id": "038",
+    "category": "DATE",
+    "query_en": "Extract year from date in column B",
+    "formula": "=YEAR(B1)",
+    "explanation_en": "YEAR extracts the year component from a date",
+    "example": "If B1='2024-10-28' → 2024",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "039",
+    "category": "DATE",
+    "query_en": "Extract month from date in column B",
+    "formula": "=MONTH(B1)",
+    "explanation_en": "MONTH extracts the month number (1-12) from a date",
+    "example": "If B1='2024-10-28' → 10",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "040",
+    "category": "DATE",
+    "query_en": "Extract day from date in column B",
+    "formula": "=DAY(B1)",
+    "explanation_en": "DAY extracts the day of month (1-31) from a date",
+    "example": "If B1='2024-10-28' → 28",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "041",
+    "category": "DATE",
+    "query_en": "Calculate days between two dates",
+    "formula": "=B1-A1",
+    "explanation_en": "Subtract earlier date from later date to get difference in days",
+    "example": "If A1='2024-01-01', B1='2024-01-10' → 9 days",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "042",
+    "category": "DATE",
+    "query_en": "Calculate months between two dates",
+    "formula": "=DATEDIF(A1,B1,\"M\")",
+    "explanation_en": "DATEDIF with 'M' parameter returns complete months between dates",
+    "example": "If A1='2024-01-01', B1='2024-06-01' → 5 months",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "043",
+    "category": "DATE",
+    "query_en": "Add 30 days to date in column A",
+    "formula": "=A1+30",
+    "explanation_en": "Add number to date to get future date",
+    "example": "If A1='2024-01-01' → '2024-01-31'",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "044",
+    "category": "DATE",
+    "query_en": "Get the last day of the month for date in A1",
+    "formula": "=EOMONTH(A1,0)",
+    "explanation_en": "EOMONTH returns end of month (0 for current month, 1 for next, etc.)",
+    "example": "If A1='2024-01-15' → '2024-01-31'",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "045",
+    "category": "NESTED",
+    "query_en": "If A1 > B1 return A1, else if B1 > C1 return B1, else return C1",
+    "formula": "=IF(A1>B1,A1,IF(B1>C1,B1,C1))",
+    "explanation_en": "Nested IF functions for multiple conditions (waterfall logic)",
+    "example": "Returns the highest value based on conditions",
+    "difficulty": "expert"
+  },
+  {
+    "id": "046",
+    "category": "NESTED",
+    "query_en": "Calculate bonus: >100M: 10%, 50-100M: 5%, <50M: 2%",
+    "formula": "=IF(A1>100000000,A1*0.1,IF(A1>=50000000,A1*0.05,A1*0.02))",
+    "explanation_en": "Tiered commission calculation using nested IF",
+    "example": "If A1=120M → 12M, if A1=70M → 3.5M, if A1=30M → 600K",
+    "difficulty": "expert"
+  },
+  {
+    "id": "047",
+    "category": "NESTED",
+    "query_en": "Safe VLOOKUP that returns 'Not Found' if error",
+    "formula": "=IFERROR(VLOOKUP(A1,C:E,2,FALSE),\"Not Found\")",
+    "explanation_en": "IFERROR wraps VLOOKUP to handle lookup failures gracefully",
+    "example": "Returns value if found, 'Not Found' if A1 doesn't exist in C:E",
+    "difficulty": "expert"
+  },
+  {
+    "id": "048",
+    "category": "STATISTICAL",
+    "query_en": "Calculate standard deviation of column A",
+    "formula": "=STDEV.P(A:A)",
+    "explanation_en": "STDEV.P calculates population standard deviation",
+    "example": "Measures spread of data in column A",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "049",
+    "category": "STATISTICAL",
+    "query_en": "Find the median value of column B",
+    "formula": "=MEDIAN(B:B)",
+    "explanation_en": "MEDIAN returns the middle value when data is sorted",
+    "example": "If B has 1,2,3,4,5 → 3",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "050",
+    "category": "STATISTICAL",
+    "query_en": "Find the 3rd largest value in range A1:A100",
+    "formula": "=LARGE(A1:A100,3)",
+    "explanation_en": "LARGE returns the k-th largest value (3rd in this case)",
+    "example": "If top values are 100,95,90,85 → returns 90",
+    "difficulty": "advanced"
+  }
+]
+
