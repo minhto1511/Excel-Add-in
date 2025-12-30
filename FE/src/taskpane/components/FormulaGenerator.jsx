@@ -1,0 +1,279 @@
+/**
+ * FormulaGenerator Component - AI Formula Generation
+ *
+ * REFACTORED:
+ * - Loại bỏ makeStyles, inline styles → CSS classes
+ * - Sử dụng apiService: generateExcelFormula, insertFormulaToExcel
+ * - Frontend CHỈ handle UI state + API calls
+ * - Business logic (validation, AI processing) → Backend
+ */
+
+import * as React from "react";
+import { useState } from "react";
+import { Button, Card, Field, Textarea, Spinner, Text, Switch } from "@fluentui/react-components";
+import {
+  Sparkle24Regular,
+  Copy24Regular,
+  Checkmark24Regular,
+  Send24Filled,
+  Eye24Regular,
+} from "@fluentui/react-icons";
+
+// API Service
+import {
+  generateExcelFormula,
+  getExcelContext,
+  insertFormulaToExcel,
+  hasApiKey,
+} from "../../services/apiService";
+
+const FormulaGenerator = () => {
+  const [prompt, setPrompt] = useState("");
+  const [formula, setFormula] = useState("");
+  const [explanation, setExplanation] = useState("");
+  const [example, setExample] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [useContext, setUseContext] = useState(true);
+  const [contextInfo, setContextInfo] = useState(null);
+  const [insertSuccess, setInsertSuccess] = useState(false);
+
+  const examplePrompts = [
+    "Tính tổng các ô từ A1 đến A10",
+    "Tìm giá trị lớn nhất trong cột B",
+    "Đếm số ô không rỗng trong C1:C50",
+    "Tính trung bình nếu cột D > 100",
+  ];
+
+  /**
+   * Generate formula - gọi Backend API
+   * TODO BACKEND: POST /api/formula/generate
+   */
+  const handleGenerate = async () => {
+    if (!prompt.trim()) return;
+
+    if (!hasApiKey()) {
+      setError("Vui lòng cấu hình API Key trước!");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+    setFormula("");
+    setExplanation("");
+    setExample("");
+    setContextInfo(null);
+
+    try {
+      // Get Excel context nếu enabled
+      let excelContext = null;
+      if (useContext) {
+        try {
+          excelContext = await getExcelContext();
+          setContextInfo(excelContext);
+          console.log("📊 Excel context:", excelContext);
+        } catch (ctxErr) {
+          console.warn("⚠️ Could not get Excel context:", ctxErr);
+          // Continue without context if it fails
+        }
+      }
+
+      // TODO BACKEND: Gọi API endpoint thay vì xử lý logic ở frontend
+      const result = await generateExcelFormula(prompt, excelContext);
+
+      setFormula(result.formula);
+      setExplanation(result.explanation);
+      setExample(result.example || "");
+    } catch (err) {
+      setError(err.message || "Đã xảy ra lỗi!");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Copy formula to clipboard
+   */
+  const handleCopy = () => {
+    navigator.clipboard.writeText(formula);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  /**
+   * Insert formula vào Excel - Client-side Excel API
+   */
+  const handleInsertToExcel = async () => {
+    if (!formula) return;
+
+    try {
+      await insertFormulaToExcel(formula);
+      setError("");
+      setInsertSuccess(true);
+      setTimeout(() => setInsertSuccess(false), 3000);
+    } catch (err) {
+      setError("❌ Lỗi khi insert vào Excel: " + err.message);
+    }
+  };
+
+  const handleExampleClick = (exampleText) => {
+    setPrompt(exampleText);
+  };
+
+  return (
+    <div className="page-container">
+      <div className="page-header">
+        <h2 className="page-title">
+          <Sparkle24Regular /> AI Formula Generator
+        </h2>
+        <p className="page-subtitle">
+          Mô tả những gì bạn muốn làm, AI sẽ tạo công thức Excel cho bạn
+        </p>
+      </div>
+
+      <Card className="card">
+        <Field label="Mô tả yêu cầu của bạn" className="form-field">
+          <Textarea
+            placeholder="VD: Tính tổng doanh thu từ cột D nếu ngày trong cột A là tháng này..."
+            rows={4}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+          />
+        </Field>
+
+        {/* Context Toggle */}
+        <div className="context-toggle-box">
+          <Switch
+            checked={useContext}
+            onChange={(e) => setUseContext(e.currentTarget.checked)}
+            label={
+              <div className="context-toggle-content">
+                <Eye24Regular className="context-toggle-content__icon" />
+                <div>
+                  <Text weight="semibold" className="context-toggle-title">
+                    Đọc context Excel (Recommended)
+                  </Text>
+                  <Text size={200} className="context-toggle-desc">
+                    AI sẽ phân tích dữ liệu thực tế trong sheet để tạo công thức chính xác hơn
+                  </Text>
+                </div>
+              </div>
+            }
+          />
+        </div>
+
+        <Button
+          appearance="primary"
+          icon={isLoading ? <Spinner size="tiny" /> : <Sparkle24Regular />}
+          onClick={handleGenerate}
+          disabled={isLoading || !prompt.trim()}
+          className="btn-primary w-100"
+        >
+          {isLoading ? "Đang tạo công thức..." : "Tạo công thức"}
+        </Button>
+
+        <div className="mt-16">
+          <Text size={200} className="d-block mb-8">
+            Ví dụ nhanh:
+          </Text>
+          <div className="example-chips">
+            {examplePrompts.map((ex, idx) => (
+              <div key={idx} className="chip" onClick={() => handleExampleClick(ex)}>
+                {ex}
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {/* Error Message */}
+      {error && <div className="alert alert--error">{error}</div>}
+
+      {/* Success Message */}
+      {insertSuccess && (
+        <div className="alert alert--success">
+          <Checkmark24Regular />
+          <Text weight="semibold">✅ Đã insert công thức vào Excel thành công!</Text>
+        </div>
+      )}
+
+      {/* Display Context Info */}
+      {contextInfo && (
+        <Card className="card context-info-card">
+          <Text weight="semibold" size={300} className="context-info-title">
+            📊 AI đã phân tích Excel của bạn:
+          </Text>
+          <Text size={200} className="context-info-content">
+            • Sheet: <strong>{contextInfo.sheetName}</strong>
+            <br />• Dữ liệu: {contextInfo.rowCount} hàng × {contextInfo.columnCount} cột
+            <br />• Các cột:{" "}
+            {contextInfo.columns
+              .filter((c) => c.hasData)
+              .map((c) => `${c.name} (${c.type})`)
+              .join(", ")}
+          </Text>
+        </Card>
+      )}
+
+      {/* Formula Result */}
+      {formula && (
+        <Card className="card">
+          <Text weight="semibold" size={400} className="d-block mb-12">
+            Công thức được tạo:
+          </Text>
+
+          <div className="formula-box">{formula}</div>
+
+          <div className="button-group">
+            <Button
+              appearance="secondary"
+              icon={copied ? <Checkmark24Regular /> : <Copy24Regular />}
+              onClick={handleCopy}
+            >
+              {copied ? "Đã sao chép!" : "Sao chép"}
+            </Button>
+            <Button
+              appearance="primary"
+              icon={<Send24Filled />}
+              onClick={handleInsertToExcel}
+              className="btn-primary"
+            >
+              Insert vào Excel
+            </Button>
+          </div>
+
+          {/* Explanation */}
+          {explanation && (
+            <div className="explanation-box">
+              <span className="explanation-box__title">💡 Giải thích:</span>
+              <Text size={300} className="explanation-box__content">
+                {explanation}
+              </Text>
+            </div>
+          )}
+
+          {/* Example */}
+          {example && (
+            <div className="example-box">
+              <span className="example-box__title">📝 Ví dụ:</span>
+              <Text size={300} className="example-box__content">
+                {example}
+              </Text>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Empty State */}
+      {!formula && !isLoading && !error && (
+        <div className="empty-state">
+          <Sparkle24Regular className="empty-state__icon" />
+          <Text>Công thức của bạn sẽ xuất hiện ở đây</Text>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default FormulaGenerator;
