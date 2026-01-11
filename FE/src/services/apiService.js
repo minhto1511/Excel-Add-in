@@ -1,38 +1,88 @@
 /**
  * API Service - Frontend API Client
  *
- * ARCHITECTURE DECISION:
+ * ARCHITECTURE:
  * - Frontend (React) CHỈ gọi API, KHÔNG xử lý business logic
- * - Backend (Node.js + Express) xử lý TẤT CẢ business logic
+ * - Backend (Node.js + Express) xử lý TẤT CẢ business logic bao gồm Gemini AI
  * - Frontend chỉ giữ UI state và hiển thị dữ liệu từ API
  *
- * TODO BACKEND: Implement các endpoint sau trong Express server
+ * AUTH FLOW:
+ * - Bắt buộc login để sử dụng AI
+ * - Free users: 10 lệnh miễn phí
+ * - Hết credits = không sử dụng được nữa
  */
+
+import { getExcelContext as getExcelContextFromService } from "./excelContextService.js";
 
 // ============================================================================
 // API CONFIGURATION
 // ============================================================================
 
-// TODO PRODUCTION: Thay đổi URL này khi deploy backend lên production
-const API_BASE_URL = "http://localhost:3001/api";
+// Backend API URL - Port 3001 (Tránh trùng với port 3000 của Frontend Dev Server)
+const API_BASE_URL = "http://localhost:3001/api/v1";
 
 /**
- * Generic API call wrapper với error handling
+ * Lấy JWT token từ localStorage
+ */
+function getAuthToken() {
+  return localStorage.getItem("auth_token");
+}
+
+/**
+ * Lưu JWT token
+ */
+export function setAuthToken(token) {
+  localStorage.setItem("auth_token", token);
+}
+
+/**
+ * Xóa JWT token (logout)
+ */
+export function clearAuthToken() {
+  localStorage.removeItem("auth_token");
+}
+
+/**
+ * Kiểm tra đã login chưa
+ */
+export function isLoggedIn() {
+  const token = getAuthToken();
+  return !!(token && token.trim());
+}
+
+/**
+ * Generic API call wrapper với error handling và auth
  */
 async function apiCall(endpoint, options = {}) {
   try {
+    const token = getAuthToken();
+    const headers = {
+      "Content-Type": "application/json",
+      ...options.headers,
+    };
+
+    // Thêm Authorization header nếu có token
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
+      headers,
       ...options,
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || `API Error: ${response.status}`);
+      // Handle specific error codes
+      if (response.status === 401) {
+        clearAuthToken();
+        throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+      }
+      if (response.status === 403) {
+        throw new Error(data.message || "Hết lượt sử dụng. Vui lòng nâng cấp!");
+      }
+      throw new Error(data.message || `Lỗi API: ${response.status}`);
     }
 
     return data;
@@ -43,266 +93,204 @@ async function apiCall(endpoint, options = {}) {
 }
 
 // ============================================================================
-// API KEY MANAGEMENT
+// AUTHENTICATION
 // ============================================================================
 
 /**
- * Save API key
- * TODO BACKEND: POST /api/config/api-key
- * - Validate API key format
- * - Encrypt và store securely (không lưu localStorage ở production!)
- * - Return success status
+ * Đăng ký user mới
  */
-export async function saveApiKey(apiKey) {
-  // TEMPORARY: Lưu localStorage (chỉ để demo)
-  // Production: Phải gọi backend để encrypt và lưu secure
-  localStorage.setItem("gemini_api_key", apiKey.trim());
-
-  /* TODO BACKEND:
-  return apiCall('/config/api-key', {
-    method: 'POST',
-    body: JSON.stringify({ apiKey }),
+export async function register(email, password, name) {
+  const data = await apiCall("/users/register", {
+    method: "POST",
+    body: JSON.stringify({ email, password, name }),
   });
-  */
-
-  return { success: true, message: "API key saved" };
+  return data;
 }
 
 /**
- * Clear API key
- * TODO BACKEND: DELETE /api/config/api-key
+ * Đăng nhập
  */
-export async function clearApiKey() {
-  // TEMPORARY
-  localStorage.removeItem("gemini_api_key");
-
-  /* TODO BACKEND:
-  return apiCall('/config/api-key', {
-    method: 'DELETE',
+export async function login(email, password) {
+  const data = await apiCall("/users/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
   });
-  */
 
-  return { success: true };
+  // Lưu token
+  if (data.token) {
+    setAuthToken(data.token);
+  }
+
+  return data;
 }
 
 /**
- * Check if API key exists
- * TODO BACKEND: GET /api/config/api-key/status
+ * Đăng xuất
  */
-export function hasApiKey() {
-  // TEMPORARY
-  const key = localStorage.getItem("gemini_api_key");
-  return !!(key && key.trim());
-
-  /* TODO BACKEND:
-  return apiCall('/config/api-key/status');
-  */
+export async function logout() {
+  try {
+    await apiCall("/users/logout", {
+      method: "POST",
+    });
+  } catch (error) {
+    // Ignore logout errors
+  } finally {
+    clearAuthToken();
+  }
 }
 
 /**
- * Get masked API key for display
- * TODO BACKEND: GET /api/config/api-key/masked
+ * Lấy thông tin profile
  */
-export function getApiKeyMasked() {
-  // TEMPORARY
-  const key = localStorage.getItem("gemini_api_key");
-  if (!key || key.length < 10) return "";
-  return key.substring(0, 10) + "..." + key.substring(key.length - 4);
+export async function getProfile() {
+  return apiCall("/users/profile");
+}
 
-  /* TODO BACKEND:
-  return apiCall('/config/api-key/masked');
-  */
+/**
+ * Lấy thông tin credits
+ */
+export async function getCredits() {
+  return apiCall("/users/credits");
 }
 
 // ============================================================================
-// FORMULA GENERATION
+// AI FEATURES - GỌI BACKEND
 // ============================================================================
 
 /**
- * Generate Excel formula from prompt
- *
- * TODO BACKEND: POST /api/formula/generate
- * Request body: {
- *   prompt: string,
- *   excelContext?: {
- *     sheetName: string,
- *     rowCount: number,
- *     columnCount: number,
- *     headers: array,
- *     columns: array,
- *     sampleData: array
- *   }
- * }
- *
- * Response: {
- *   formula: string,
- *   explanation: string,
- *   example?: string
- * }
- *
- * BACKEND RESPONSIBILITIES:
- * - Validate prompt (length, content)
- * - Get API key từ secure storage
- * - Call Gemini API với prompt engineering
- * - Parse và validate AI response
- * - Handle errors, retries, rate limits
- * - Log requests for analytics
- * - Cache results để optimize
+ * Generate Excel formula từ prompt
+ * Gọi BE endpoint: POST /api/v1/ai/ask với type="formula"
  */
 export async function generateExcelFormula(prompt, excelContext = null) {
   if (!prompt || !prompt.trim()) {
     throw new Error("Prompt không được rỗng!");
   }
 
-  /* TODO BACKEND: Uncomment khi backend ready
-  return apiCall('/formula/generate', {
-    method: 'POST',
+  const data = await apiCall("/ai/ask", {
+    method: "POST",
     body: JSON.stringify({
+      type: "formula",
       prompt,
       excelContext,
     }),
   });
-  */
 
-  // FALLBACK: Temporary - gọi trực tiếp geminiService (sẽ xóa sau khi có backend)
-  const { generateExcelFormula: legacyGenerate } = await import("./geminiService.js");
-  return legacyGenerate(prompt, excelContext);
+  // Backend trả về { result: {...}, cached, creditsRemaining }
+  return data.result;
 }
 
-// ============================================================================
-// DATA ANALYSIS
-// ============================================================================
-
 /**
- * Analyze Excel data and provide insights
- *
- * TODO BACKEND: POST /api/analysis/data
- * Request body: {
- *   excelContext: {
- *     sheetName: string,
- *     rowCount: number,
- *     columnCount: number,
- *     columns: array,
- *     sampleData: array
- *   }
- * }
- *
- * Response: {
- *   summary: string,
- *   keyMetrics?: array<{ icon, label, value }>,
- *   trends?: array<{ type, description }>,
- *   insights?: array<string>,
- *   recommendations?: array<string>,
- *   warnings?: array<string>,
- *   chartSuggestion?: { title, description }
- * }
- *
- * BACKEND RESPONSIBILITIES:
- * - Validate Excel context data
- * - Get API key
- * - Call Gemini API cho analysis
- * - Parse và structure response
- * - Handle errors
+ * Analyze Excel data
+ * Gọi BE endpoint: POST /api/v1/ai/ask với type="analysis"
  */
 export async function analyzeExcelData(excelContext) {
   if (!excelContext || !excelContext.sampleData || excelContext.sampleData.length === 0) {
     throw new Error("Không có dữ liệu để phân tích!");
   }
 
-  /* TODO BACKEND: Uncomment khi backend ready
-  return apiCall('/analysis/data', {
-    method: 'POST',
-    body: JSON.stringify({ excelContext }),
+  const data = await apiCall("/ai/ask", {
+    method: "POST",
+    body: JSON.stringify({
+      type: "analysis",
+      prompt: "analyze", // BE cần prompt cho cache key
+      excelContext,
+    }),
   });
-  */
 
-  // FALLBACK: Temporary
-  const { analyzeExcelData: legacyAnalyze } = await import("./geminiService.js");
-  return legacyAnalyze(excelContext);
+  return data.result;
 }
 
-// ============================================================================
-// STEP-BY-STEP GUIDE
-// ============================================================================
-
 /**
- * Generate step-by-step guide for Excel task
- *
- * TODO BACKEND: POST /api/guide/generate
- * Request body: {
- *   task: string  // Mô tả task user muốn làm
- * }
- *
- * Response: {
- *   taskName: string,
- *   steps: array<{
- *     title: string,
- *     description: string,
- *     details: array<string>,
- *     tips?: string,
- *     warning?: string
- *   }>
- * }
- *
- * BACKEND RESPONSIBILITIES:
- * - Validate task description
- * - Call Gemini API với prompt engineering
- * - Parse và structure steps
- * - Ensure quality của hướng dẫn
+ * Generate step-by-step guide
+ * Gọi BE endpoint: POST /api/v1/ai/ask với type="guide"
  */
 export async function generateStepByStep(task) {
   if (!task || !task.trim()) {
     throw new Error("Task description không được rỗng!");
   }
 
-  /* TODO BACKEND: Uncomment khi backend ready
-  return apiCall('/guide/generate', {
-    method: 'POST',
-    body: JSON.stringify({ task }),
+  const data = await apiCall("/ai/ask", {
+    method: "POST",
+    body: JSON.stringify({
+      type: "guide",
+      prompt: task,
+    }),
   });
-  */
 
-  // FALLBACK: Temporary
-  const { generateStepByStep: legacyGenerate } = await import("./geminiService.js");
-  return legacyGenerate(task);
+  return data.result;
 }
 
 // ============================================================================
-// EXCEL CONTEXT SERVICE
+// AI HISTORY
+// ============================================================================
+
+/**
+ * Lấy lịch sử AI
+ */
+export async function getAIHistory(type = null, page = 1, limit = 20) {
+  let url = `/ai/history?page=${page}&limit=${limit}`;
+  if (type) {
+    url += `&type=${type}`;
+  }
+  return apiCall(url);
+}
+
+/**
+ * Xóa một mục lịch sử
+ */
+export async function deleteAIHistory(id) {
+  return apiCall(`/ai/history/${id}`, {
+    method: "DELETE",
+  });
+}
+
+// ============================================================================
+// EXCEL CONTEXT SERVICE (Client-side - không qua BE)
 // ============================================================================
 
 /**
  * Get Excel context từ active worksheet
- *
- * NOTE: Function này chạy ở CLIENT SIDE (Excel Add-in API)
- * KHÔNG cần backend API vì data nhạy cảm, không nên gửi lên server
+ * NOTE: Chạy ở CLIENT SIDE (Excel Add-in API)
  */
 export async function getExcelContext() {
-  const { getExcelContext: getContext } = await import("./excelContextService.js");
-  return getContext();
+  return getExcelContextFromService();
 }
-
-// ============================================================================
-// EXCEL OPERATIONS
-// ============================================================================
 
 /**
  * Insert formula vào Excel
- * NOTE: Client-side operation qua Excel API, không cần backend
+ * NOTE: Client-side operation qua Excel API
  */
 export async function insertFormulaToExcel(formula, targetCell = null) {
   try {
     await Excel.run(async (context) => {
       const sheet = context.workbook.worksheets.getActiveWorksheet();
-
-      // Insert vào selected cell hoặc cell chỉ định
       const range = targetCell ? sheet.getRange(targetCell) : context.workbook.getSelectedRange();
 
       range.load("address");
       await context.sync();
 
-      // Set formula
-      range.values = [[formula]];
+      // Clean formula - loại bỏ các ký tự không hợp lệ
+      let cleanFormula = formula.trim();
+
+      // Đảm bảo formula bắt đầu bằng =
+      if (!cleanFormula.startsWith("=")) {
+        cleanFormula = "=" + cleanFormula;
+      }
+
+      // Fix escape issues - thay thế backslash sai
+      cleanFormula = cleanFormula.replace(/\\\\/g, "\\");
+
+      // Thử insert như formula trước
+      try {
+        range.formulas = [[cleanFormula]];
+        await context.sync();
+      } catch (formulaError) {
+        console.warn("Formula insert failed, trying as value:", formulaError);
+        // Nếu fail, thử insert như text công thức để user copy
+        range.values = [[cleanFormula]];
+        await context.sync();
+      }
+
       range.format.autofitColumns();
       await context.sync();
 
@@ -315,26 +303,69 @@ export async function insertFormulaToExcel(formula, targetCell = null) {
 }
 
 // ============================================================================
+// DEPRECATED - Giữ lại cho backward compatibility nhưng sẽ xóa
+// ============================================================================
+
+/**
+ * @deprecated Không còn cần API key vì BE dùng system key
+ */
+export function hasApiKey() {
+  // Giờ chỉ cần check login
+  return isLoggedIn();
+}
+
+/**
+ * @deprecated Không còn cần
+ */
+export async function saveApiKey(apiKey) {
+  console.warn("saveApiKey() is deprecated. System uses server-side API key.");
+  return { success: true };
+}
+
+/**
+ * @deprecated Không còn cần
+ */
+export async function clearApiKey() {
+  console.warn("clearApiKey() is deprecated. System uses server-side API key.");
+  return { success: true };
+}
+
+/**
+ * @deprecated Không còn cần
+ */
+export function getApiKeyMasked() {
+  return "System API Key";
+}
+
+// ============================================================================
 // EXPORT
 // ============================================================================
 
 export default {
-  // Config
-  saveApiKey,
-  clearApiKey,
-  hasApiKey,
-  getApiKeyMasked,
+  // Auth
+  register,
+  login,
+  logout,
+  isLoggedIn,
+  getProfile,
+  getCredits,
 
-  // Formula
+  // AI Features
   generateExcelFormula,
-
-  // Analysis
   analyzeExcelData,
-
-  // Guide
   generateStepByStep,
 
-  // Excel Context
+  // AI History
+  getAIHistory,
+  deleteAIHistory,
+
+  // Excel Context (client-side)
   getExcelContext,
   insertFormulaToExcel,
+
+  // Deprecated
+  hasApiKey,
+  saveApiKey,
+  clearApiKey,
+  getApiKeyMasked,
 };

@@ -21,9 +21,9 @@ import {
 } from "@fluentui/react-icons";
 
 // API Service
-import { analyzeExcelData, getExcelContext, hasApiKey } from "../../services/apiService";
+import { analyzeExcelData, getExcelContext } from "../../services/apiService";
 
-const DataAnalyzer = () => {
+const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
   const [analysis, setAnalysis] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -33,8 +33,8 @@ const DataAnalyzer = () => {
    * TODO BACKEND: POST /api/analysis/data
    */
   const handleAnalyze = async () => {
-    if (!hasApiKey()) {
-      setError("Vui lòng cấu hình API Key trước!");
+    if (disabled) {
+      setError("Bạn đã hết lượt sử dụng!");
       return;
     }
 
@@ -53,6 +53,11 @@ const DataAnalyzer = () => {
       // TODO BACKEND: Gọi API để analyze
       const result = await analyzeExcelData(excelContext);
       setAnalysis(result);
+
+      // Notify parent to refresh credits
+      if (onRequestComplete) {
+        onRequestComplete();
+      }
     } catch (err) {
       setError(err.message || "Đã xảy ra lỗi!");
     } finally {

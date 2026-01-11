@@ -8,21 +8,44 @@ dotenv.config({
 
 const startServer = async () => {
   try {
+    console.log("=== STARTING SERVER ===");
+    console.log("PORT:", process.env.PORT);
     console.log("MONGODB_URI:", process.env.MONGODB_URI);
+    console.log("JWT_SECRET exists:", !!process.env.JWT_SECRET);
+
+    console.log("Connecting to MongoDB...");
     await connectDB();
+    console.log("MongoDB connected successfully!");
+
     app.on("error", (error) => {
-      // to check if there are any errors
-      console.log("Error:", error);
+      console.error("=== APP ERROR ===");
+      console.error("Error:", error);
+      console.error("Stack:", error.stack);
       throw error;
     });
 
-    app.listen(process.env.PORT || 6969, () => {
-      // to check if the server is running on the correct port
-      console.log(`Server is running on port ${process.env.PORT}`);
+    const PORT = process.env.PORT || 5000;
+    console.log(`Attempting to listen on port ${PORT}...`);
+
+    const server = app.listen(PORT, () => {
+      console.log("=== SERVER STARTED SUCCESSFULLY ===");
+      console.log(`Server is running on port ${PORT}`);
+      console.log(`Health check: http://localhost:${PORT}/api/health`);
+      console.log(`API Base: http://localhost:${PORT}/api/v1`);
+    });
+
+    server.on("error", (error) => {
+      console.error("=== SERVER ERROR ===");
+      console.error("Error:", error);
+      if (error.code === "EADDRINUSE") {
+        console.error(`Port ${PORT} is already in use!`);
+      }
     });
   } catch (error) {
-    console.log("MongoDB connection failed!!:", error);
-    throw error;
+    console.error("=== STARTUP ERROR ===");
+    console.error("MongoDB connection failed:", error);
+    console.error("Stack:", error.stack);
+    process.exit(1);
   }
 };
 

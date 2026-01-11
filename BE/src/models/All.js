@@ -1,14 +1,8 @@
 // Central export for all models
-const User = require("./User");
-const Transaction = require("./Transaction");
-const Conversation = require("./Conversation");
-const Message = require("./Message");
-const AIHistory = require("./AIHistory");
+import User from "./User.js";
+import Transaction from "./Transaction.js";
+import Conversation from "./Conversation.js";
+import Message from "./Message.js";
+import AIHistory from "./AIHistory.js";
 
-module.exports = {
-  User,
-  Transaction,
-  Conversation,
-  Message,
-  AIHistory,
-};
+export { User, Transaction, Conversation, Message, AIHistory };

@@ -1,7 +1,7 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+import { Schema, model } from "mongoose";
+import { genSalt, hash, compare } from "bcryptjs";
 
-const userSchema = new mongoose.Schema(
+const userSchema = new Schema(
   {
     email: {
       type: String,
@@ -78,27 +78,25 @@ userSchema.virtual("hasCredits").get(function () {
 });
 
 // Pre-save hook: Hash password
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
 
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
+  const salt = await genSalt(10);
+  this.password = await hash(this.password, salt);
 });
 
 // Pre-save hook: Set billing date for new free users
-userSchema.pre("save", function (next) {
+userSchema.pre("save", function () {
   if (this.isNew && this.subscription.plan === "free") {
     const nextMonth = new Date();
     nextMonth.setMonth(nextMonth.getMonth() + 1);
     this.subscription.nextBillingDate = nextMonth;
   }
-  next();
 });
 
 // Method: Compare password
 userSchema.methods.comparePassword = async function (candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+  return await compare(candidatePassword, this.password);
 };
 
 // Method: Deduct credit
@@ -113,4 +111,4 @@ userSchema.methods.deductCredit = async function () {
   // Pro users: unlimited, no deduction
 };
 
-module.exports = mongoose.model("User", userSchema);
+export default model("User", userSchema);

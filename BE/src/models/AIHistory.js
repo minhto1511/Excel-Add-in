@@ -1,10 +1,10 @@
-const mongoose = require("mongoose");
-const crypto = require("crypto");
+import { Schema, model } from "mongoose";
+import crypto from "crypto";
 
-const aiHistorySchema = new mongoose.Schema(
+const aiHistorySchema = new Schema(
   {
     userId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
       index: true,
@@ -23,7 +23,7 @@ const aiHistorySchema = new mongoose.Schema(
         required: true,
       },
       excelContext: {
-        type: mongoose.Schema.Types.Mixed,
+        type: Schema.Types.Mixed,
         default: null,
       },
       contextHash: {
@@ -34,7 +34,7 @@ const aiHistorySchema = new mongoose.Schema(
 
     output: {
       result: {
-        type: mongoose.Schema.Types.Mixed,
+        type: Schema.Types.Mixed,
         required: true,
       },
       tokensUsed: Number,
@@ -61,7 +61,7 @@ aiHistorySchema.index(
 );
 
 // Pre-save hook: Generate contextHash
-aiHistorySchema.pre("save", function (next) {
+aiHistorySchema.pre("save", function () {
   if (this.input.prompt && !this.input.contextHash) {
     const hashInput = JSON.stringify({
       prompt: this.input.prompt,
@@ -73,7 +73,6 @@ aiHistorySchema.pre("save", function (next) {
       .update(hashInput)
       .digest("hex");
   }
-  next();
 });
 
 // Static method: Find cached result
@@ -94,4 +93,4 @@ aiHistorySchema.statics.findCached = async function (
   });
 };
 
-module.exports = mongoose.model("AIHistory", aiHistorySchema);
+export default model("AIHistory", aiHistorySchema);

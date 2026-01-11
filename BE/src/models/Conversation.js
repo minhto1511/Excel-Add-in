@@ -1,16 +1,16 @@
-const mongoose = require("mongoose");
+import { Schema, model } from "mongoose";
 
-const conversationSchema = new mongoose.Schema(
+const conversationSchema = new Schema(
   {
     userId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
       index: true,
     },
 
     supportAgentId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
       default: null,
     },
@@ -54,4 +54,4 @@ const conversationSchema = new mongoose.Schema(
 conversationSchema.index({ userId: 1, status: 1 });
 conversationSchema.index({ supportAgentId: 1, status: 1 });
 
-module.exports = mongoose.model("Conversation", conversationSchema);
+export default model("Conversation", conversationSchema);
