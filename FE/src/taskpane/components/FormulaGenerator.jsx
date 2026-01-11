@@ -24,10 +24,9 @@ import {
   generateExcelFormula,
   getExcelContext,
   insertFormulaToExcel,
-  hasApiKey,
 } from "../../services/apiService";
 
-const FormulaGenerator = () => {
+const FormulaGenerator = ({ disabled = false, onRequestComplete }) => {
   const [prompt, setPrompt] = useState("");
   const [formula, setFormula] = useState("");
   const [explanation, setExplanation] = useState("");
@@ -53,8 +52,8 @@ const FormulaGenerator = () => {
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
 
-    if (!hasApiKey()) {
-      setError("Vui lòng cấu hình API Key trước!");
+    if (disabled) {
+      setError("Bạn đã hết lượt sử dụng!");
       return;
     }
 
@@ -82,9 +81,23 @@ const FormulaGenerator = () => {
       // TODO BACKEND: Gọi API endpoint thay vì xử lý logic ở frontend
       const result = await generateExcelFormula(prompt, excelContext);
 
-      setFormula(result.formula);
-      setExplanation(result.explanation);
-      setExample(result.example || "");
+      // Xử lý trường hợp AI trả về formula rỗng (yêu cầu không rõ ràng)
+      if (!result.formula || result.formula.trim() === "") {
+        // Hiển thị explanation như một warning/info message
+        setError(result.explanation || "AI không thể tạo công thức. Vui lòng mô tả chi tiết hơn.");
+        setFormula("");
+        setExplanation("");
+        setExample("");
+      } else {
+        setFormula(result.formula);
+        setExplanation(result.explanation);
+        setExample(result.example || "");
+      }
+
+      // Notify parent to refresh credits
+      if (onRequestComplete) {
+        onRequestComplete();
+      }
     } catch (err) {
       setError(err.message || "Đã xảy ra lỗi!");
     } finally {
@@ -152,7 +165,7 @@ const FormulaGenerator = () => {
                 <Eye24Regular className="context-toggle-content__icon" />
                 <div>
                   <Text weight="semibold" className="context-toggle-title">
-                    Đọc context Excel (Recommended)
+                    Đọc ngữ cảnh Excel (Gợi ý)
                   </Text>
                   <Text size={200} className="context-toggle-desc">
                     AI sẽ phân tích dữ liệu thực tế trong sheet để tạo công thức chính xác hơn
@@ -207,12 +220,47 @@ const FormulaGenerator = () => {
           <Text size={200} className="context-info-content">
             • Sheet: <strong>{contextInfo.sheetName}</strong>
             <br />• Dữ liệu: {contextInfo.rowCount} hàng × {contextInfo.columnCount} cột
-            <br />• Các cột:{" "}
-            {contextInfo.columns
-              .filter((c) => c.hasData)
-              .map((c) => `${c.name} (${c.type})`)
-              .join(", ")}
+            {contextInfo.startRow && (
+              <>
+                <br />• Vị trí: Bắt đầu từ hàng {contextInfo.startRow}
+              </>
+            )}
+            {contextInfo.selectedCell && (
+              <>
+                <br />• Ô đang chọn: {contextInfo.selectedCell.address}
+              </>
+            )}
           </Text>
+
+          {/* Named Tables */}
+          {contextInfo.namedTables && contextInfo.namedTables.length > 0 && (
+            <Text
+              size={200}
+              className="context-info-content"
+              style={{ marginTop: "8px", color: "#0078d4" }}
+            >
+              📋 <strong>Named Tables ({contextInfo.namedTables.length}):</strong>
+              <br />
+              {contextInfo.namedTables.map((table, idx) => (
+                <span key={idx}>
+                  • {table.name}: {table.columns.slice(0, 5).join(", ")}
+                  {table.columns.length > 5 ? "..." : ""}
+                  <br />
+                </span>
+              ))}
+            </Text>
+          )}
+
+          {/* Regular Columns (fallback if no tables) */}
+          {(!contextInfo.namedTables || contextInfo.namedTables.length === 0) && (
+            <Text size={200} className="context-info-content">
+              • Các cột:{" "}
+              {contextInfo.columns
+                .filter((c) => c.hasData)
+                .map((c) => `${c.name} (${c.type})`)
+                .join(", ")}
+            </Text>
+          )}
         </Card>
       )}
 

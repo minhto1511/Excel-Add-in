@@ -1,16 +1,16 @@
-import mongoose from "mongoose";
+import { Schema, model } from "mongoose";
 
-const messageSchema = new mongoose.Schema(
+const messageSchema = new Schema(
   {
     conversationId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "Conversation",
       required: true,
       index: true,
     },
 
     senderId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
       index: true,
@@ -48,4 +48,4 @@ const messageSchema = new mongoose.Schema(
 // Compound index for loading messages in order
 messageSchema.index({ conversationId: 1, createdAt: 1 });
 
-module.exports = mongoose.model("Message", messageSchema);
+export default model("Message", messageSchema);

@@ -1,9 +1,9 @@
-const mongoose = require("mongoose");
+import { Schema, model } from "mongoose";
 
-const transactionSchema = new mongoose.Schema(
+const transactionSchema = new Schema(
   {
     userId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
       index: true,
@@ -46,7 +46,7 @@ const transactionSchema = new mongoose.Schema(
     gatewayTransactionId: String,
 
     metadata: {
-      type: mongoose.Schema.Types.Mixed,
+      type: Schema.Types.Mixed,
       default: {},
     },
   },
@@ -58,4 +58,4 @@ const transactionSchema = new mongoose.Schema(
 // Compound index for user history queries
 transactionSchema.index({ userId: 1, createdAt: -1 });
 
-module.exports = mongoose.model("Transaction", transactionSchema);
+export default model("Transaction", transactionSchema);

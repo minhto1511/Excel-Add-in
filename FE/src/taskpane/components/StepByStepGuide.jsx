@@ -20,9 +20,9 @@ import {
 } from "@fluentui/react-icons";
 
 // API Service
-import { generateStepByStep, hasApiKey } from "../../services/apiService";
+import { generateStepByStep } from "../../services/apiService";
 
-const StepByStepGuide = () => {
+const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
   const [task, setTask] = useState("");
   const [taskName, setTaskName] = useState("");
   const [steps, setSteps] = useState([]);
@@ -44,8 +44,8 @@ const StepByStepGuide = () => {
   const handleGenerate = async () => {
     if (!task.trim()) return;
 
-    if (!hasApiKey()) {
-      setError("Vui lòng cấu hình API Key trước!");
+    if (disabled) {
+      setError("Bạn đã hết lượt sử dụng!");
       return;
     }
 
@@ -59,6 +59,11 @@ const StepByStepGuide = () => {
       const result = await generateStepByStep(task);
       setTaskName(result.taskName);
       setSteps(result.steps);
+
+      // Notify parent to refresh credits
+      if (onRequestComplete) {
+        onRequestComplete();
+      }
     } catch (err) {
       setError(err.message || "Đã xảy ra lỗi!");
     } finally {
