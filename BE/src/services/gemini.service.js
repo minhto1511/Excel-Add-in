@@ -10,21 +10,11 @@
 
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1";
 
-// Danh sách models ưu tiên (cập nhật 2026)
-// Gemini 3.0 Flash - mới nhất, nhanh và mạnh
-// Gemini 2.5 Flash/Pro - ổn định, chất lượng cao
-const PREFERRED_MODELS = [
-  "gemini-3-flash",
-  "gemini-3-flash-preview",
-  "gemini-2.5-flash",
-  "gemini-2.5-pro",
-  "gemini-2.5-flash-lite",
-  "gemini-2.0-flash-exp",
-  "gemini-1.5-flash-latest",
-];
+// Model mặc định - KHÔNG gọi API để kiểm tra
+const DEFAULT_MODEL = "gemini-2.5-flash";
 
 // Cache model đã chọn
-let cachedModel = null;
+let cachedModel = DEFAULT_MODEL;
 
 /**
  * Lấy API key từ environment
@@ -38,83 +28,56 @@ function getApiKey() {
 }
 
 /**
- * Clean và fix JSON response từ AI
+ * Clean AI response to extract pure JSON
  */
 function cleanJSONResponse(text) {
+  if (!text) return "{}";
+
   let cleaned = text.trim();
 
-  // Remove markdown code blocks
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned
-      .replace(/^```json?\n?/i, "")
-      .replace(/\n?```$/, "")
-      .trim();
-  }
+  // Remove markdown code fences (```json, ```, ```)
+  cleaned = cleaned.replace(/^```(?:json)?\s*/gm, "");
+  cleaned = cleaned.replace(/```\s*$/gm, "");
 
-  // Extract JSON object if embedded in text
+  // Remove any text before first { and after last }
   const firstBrace = cleaned.indexOf("{");
   const lastBrace = cleaned.lastIndexOf("}");
+
   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
     cleaned = cleaned.substring(firstBrace, lastBrace + 1);
   }
 
-  // Fix trailing commas
-  cleaned = cleaned.replace(/,(\s*\])/g, "$1");
-  cleaned = cleaned.replace(/,(\s*\})/g, "$1");
-
-  // Fix malformed JSON: "key":} or "key":] -> "key":""} or "key":""]
-  cleaned = cleaned.replace(/"([^"]+)":\s*([}\]])/g, '"$1":""$2');
-  cleaned = cleaned.replace(/"([^"]+)":\s*,/g, '"$1":"",');
-
-  // ============================================
-  // FIX FORMULA TRUNCATION AND ESCAPE ISSUES
-  // ============================================
-
-  // Nếu công thức bị cắt (có formula: "=... nhưng không có closing quote)
-  // Tìm formula field và fix
-  const formulaMatch = cleaned.match(/"formula"\s*:\s*"([^"]*?)(?:\\)?$/m);
-  if (formulaMatch) {
-    // Công thức bị cắt, thêm closing quote
-    cleaned = cleaned.replace(
-      /"formula"\s*:\s*"([^"]*?)(?:\\)?$/m,
-      '"formula":"$1"'
-    );
-  }
-
-  // Fix backslash trước quote trong công thức (\\\" -> ")
-  // AI thường viết: Orders[Payment]=\"Paid\"
-  // Cần giữ nguyên backslash để JSON parse đúng
-
-  // Fix missing closing braces/brackets
-  const openBraces = (cleaned.match(/{/g) || []).length;
-  const closeBraces = (cleaned.match(/}/g) || []).length;
-  const openBrackets = (cleaned.match(/\[/g) || []).length;
-  const closeBrackets = (cleaned.match(/\]/g) || []).length;
-
-  if (openBrackets > closeBrackets) {
-    cleaned += "]".repeat(openBrackets - closeBrackets);
-  }
-  if (openBraces > closeBraces) {
-    cleaned += "}".repeat(openBraces - closeBraces);
-  }
+  cleaned = cleaned.replace(/,\s*}/g, "}");
+  cleaned = cleaned.replace(/,\s*]/g, "]");
 
   return cleaned;
 }
 
 /**
- * Sau khi parse JSON, fix công thức Excel
+ * Fix placeholder <<Q>> trong công thức thành dấu nháy kép
  */
-function fixFormulaEscapes(formula) {
+function fixFormulaPlaceholder(formula) {
   if (!formula || typeof formula !== "string") return formula;
+  return formula.replace(/<<Q>>/g, '"');
+}
 
-  // Loại bỏ backslash thừa trước quotes
-  // \"Paid\" -> "Paid"
-  let fixed = formula.replace(/\\"/g, '"');
+/**
+ * Fallback: Trích xuất công thức từ raw text khi JSON parse fail
+ */
+function extractFormulaFromText(text) {
+  // Ưu tiên 1: Tìm "formula": "..." trong text
+  const formulaFieldMatch = text.match(/"formula"\s*:\s*"([\s\S]*?)"/);
+  if (formulaFieldMatch && formulaFieldMatch[1]) {
+    return fixFormulaPlaceholder(formulaFieldMatch[1]);
+  }
 
-  // Fix double backslash
-  fixed = fixed.replace(/\\\\/g, "\\");
+  // Ưu tiên 2: Tìm dòng bắt đầu bằng =
+  const formulaLineMatch = text.match(/^\s*(=.+)$/m);
+  if (formulaLineMatch && formulaLineMatch[1]) {
+    return fixFormulaPlaceholder(formulaLineMatch[1].trim());
+  }
 
-  return fixed;
+  return null;
 }
 
 /**
@@ -157,11 +120,12 @@ async function pickAvailableModel() {
 }
 
 /**
- * Call Gemini API with retry logic
+ * Call Gemini API with retry logic and signal support
  */
-async function callGenerateContent(modelName, payload, retryCount = 0) {
+async function callGenerateContent(modelName, payload, options = {}) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 1000;
+  const { signal: externalSignal, retryCount = 0 } = options;
 
   const apiKey = getApiKey();
   const url = `${GEMINI_BASE_URL}/models/${modelName}:generateContent?key=${encodeURIComponent(
@@ -172,11 +136,17 @@ async function callGenerateContent(modelName, payload, retryCount = 0) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
+    // Listen to external abort signal
+    if (externalSignal) {
+      externalSignal.addEventListener("abort", () => {
+        controller.abort();
+        clearTimeout(timeoutId);
+      });
+    }
+
     const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
@@ -192,7 +162,6 @@ async function callGenerateContent(modelName, payload, retryCount = 0) {
       // Retry logic for specific errors
       if (retryCount < MAX_RETRIES) {
         if (errorCode === 429 || errorCode === 503 || errorCode >= 500) {
-          // Đối với lỗi 429, đợi lâu hơn một chút
           const multiplier = errorCode === 429 ? 3 : 2;
           const delay = BASE_DELAY * Math.pow(multiplier, retryCount);
 
@@ -202,7 +171,10 @@ async function callGenerateContent(modelName, payload, retryCount = 0) {
             }/${MAX_RETRIES})`
           );
           await new Promise((resolve) => setTimeout(resolve, delay));
-          return callGenerateContent(modelName, payload, retryCount + 1);
+          return callGenerateContent(modelName, payload, {
+            ...options,
+            retryCount: retryCount + 1,
+          });
         }
       }
 
@@ -231,10 +203,18 @@ async function callGenerateContent(modelName, payload, retryCount = 0) {
     return { text };
   } catch (error) {
     if (error.name === "AbortError") {
+      // Check if it's external cancel vs timeout
+      if (externalSignal?.aborted) {
+        throw new Error("Request cancelled");
+      }
+
       if (retryCount < MAX_RETRIES) {
         const delay = BASE_DELAY * Math.pow(2, retryCount);
         await new Promise((resolve) => setTimeout(resolve, delay));
-        return callGenerateContent(modelName, payload, retryCount + 1);
+        return callGenerateContent(modelName, payload, {
+          ...options,
+          retryCount: retryCount + 1,
+        });
       }
       throw new Error("❌ Request timeout sau 30 giây!");
     }
@@ -244,63 +224,72 @@ async function callGenerateContent(modelName, payload, retryCount = 0) {
 }
 
 /**
- * Ensure model is cached
+ * Đảm bảo có model - KHÔNG gọi listModels để tiết kiệm request
  */
 async function ensureModel() {
-  if (!cachedModel) {
-    cachedModel = await pickAvailableModel();
-    console.log(`📦 Using Gemini model: ${cachedModel}`);
-  }
-  return cachedModel;
+  // Dùng thẳng DEFAULT_MODEL thay vì gọi API
+  return cachedModel || DEFAULT_MODEL;
 }
 
 // ============================================================================
 // PROMPTS TEMPLATES
 // ============================================================================
 
-const FORMULA_SYSTEM_PROMPT = `Bạn là CHUYÊN GIA EXCEL 15 năm kinh nghiệm, hỗ trợ Excel 365/2024. Tạo công thức CHÍNH XÁC 100%.
+const FORMULA_SYSTEM_PROMPT = `Bạn là CHUYÊN GIA EXCEL 15 năm kinh nghiệm, hỗ trợ Excel 365/2024.
 
-🔥 QUY TẮC BẮT BUỘC:
-1. CHỈ dùng cột/table có trong CONTEXT. KHÔNG bịa!
-2. Nếu có Named Tables (Ctrl+T), dùng Table[Column] syntax
-3. Dùng range CỤ THỂ (B2:B10) không dùng toàn cột B:B
-4. Có thể dùng: LET, FILTER, UNIQUE, SORT, XLOOKUP, SUMPRODUCT, MAXIFS, IF
+QUY TẮC BẮT BUỘC:
+1. CHỈ dùng cột/table có trong CONTEXT. KHÔNG bịa tên bảng/cột.
+2. Nếu CONTEXT có "NAMED TABLES" → dùng Table[Column] (Ưu tiên số 1).
+3. Nếu CONTEXT KHÔNG có "NAMED TABLES" → TUYỆT ĐỐI không dùng syntax Table[...]. Dùng range A2:A10.
+4. LET PHẢI có biểu thức kết quả cuối cùng. Ví dụ: =LET(x, A2, x*2).
 
-📊 VÍ DỤ VỚI NAMED TABLES:
-Nếu có Tables: Customers, Orders, Products
-- "Tổng Qty theo CustomerID" → =SUMIF(Orders[CustomerID], A2, Orders[Qty])
-- "Lookup Category từ ProductID" → =XLOOKUP(E2, Products[ProductID], Products[Category])
-- "Phức tạp với LET" → =LET(cid, A2, orders, FILTER(Orders, Orders[CustomerID]=cid), SUM(orders))
+VÍ DỤ:
+CÓ Named Tables: =SUMIF(Orders[CustomerID], A2, Orders[Qty])
+KHÔNG CÓ Tables: =SUMIF(C2:C20, A2, F2:F20)
 
-⚠️ QUAN TRỌNG VỀ JSON:
-- Trong JSON, dấu " trong công thức phải escape thành \\"
-- Ví dụ: Orders[Payment]="Paid" → viết là Orders[Payment]=\\"Paid\\"
+DẤU NHÁY KÉP:
+- Dùng <<Q>> thay cho dấu ".
+- Ví dụ: =FILTER(Orders, Orders[Status]=<<Q>>Paid<<Q>>)
+- System sẽ tự động chuyển <<Q>> thành " thật.
 
-✅ TRẢ VỀ JSON VALID (không markdown, escape đúng):
+TRẢ VỀ JSON:
 {
-  "formula": "=công thức hoàn chỉnh, không cắt xén",
-  "explanation": "giải thích ngắn tiếng Việt",
+  "formula": "=công thức hoàn chỉnh dùng <<Q>>",
+  "explanation": "giải thích ngắn gọn",
   "example": "ví dụ cụ thể"
 }
 
-⛔ KHÔNG BAO GIỜ cắt công thức giữa chừng. Viết đầy đủ.`;
+TUYỆT ĐỐI KHÔNG:
+- Cắt công thức giữa chừng.
+- Dùng tên bảng không có trong context.`;
 
-const ANALYSIS_SYSTEM_PROMPT = `Bạn là DATA ANALYST chuyên nghiệp. Phân tích dữ liệu Excel.
+const ANALYSIS_SYSTEM_PROMPT = `Bạn là DATA ANALYST chuyên nghiệp.
 
-QUY TẮC:
-- CHỈ dùng số liệu từ context, KHÔNG bịa
-- Tính: SUM, AVERAGE, MAX, MIN, COUNT
-- Format số: thêm đơn vị, làm tròn đẹp
+NGUYÊN TẮC:
+1. MULTI-TABLE: Nếu context có nhiều bảng → phân tích TẤT CẢ
+2. ACCURATE COUNT: Dùng rowCount, KHÔNG đếm sample
+3. DATE PARSING: Số 30000-60000 = Excel date serial → PHẢI convert sang ngày (1899-12-30 + N ngày)
+   VD: 45530 = 2024-08-07 (hiển thị "7/8/2024" hoặc "2024-08-07")
+4. NO GUESSING: Không đoán nếu không rõ
+5. VIETNAMESE: TRẢ LỜI 100% TIẾNG VIỆT - label, value, description TẤT CẢ phải tiếng Việt
 
-TRẢ VỀ JSON (không markdown):
+QUAN TRỌNG - OUTPUT:
+- TRẢ VỀ DUY NHẤT 1 JSON OBJECT
+- KHÔNG viết markdown \`\`\`json
+- KHÔNG viết heading/tiêu đề
+- KHÔNG giải thích
+- CHỈ JSON thuần túy
+- TẤT CẢ nội dung TIẾNG VIỆT
+
+SCHEMA:
 {
-  "summary": "Tóm tắt ngắn gọn",
-  "keyMetrics": [{"label": "Tên", "value": "Giá trị", "icon": "💰"}],
-  "trends": [{"type": "positive|negative|neutral", "description": "Mô tả"}],
-  "insights": ["Phát hiện quan trọng"],
-  "recommendations": ["Đề xuất cụ thể"],
-  "warnings": ["Cảnh báo nếu có"],
-  "chartSuggestion": {"type": "column|line|pie", "title": "Tiêu đề", "description": "Mô tả"}
+  "summary": "string (tiếng Việt)",
+  "keyMetrics": [{"label": "string (tiếng Việt)", "value": "string (tiếng Việt)"}],
+  "trends": [{"type": "positive|negative|neutral", "description": "string (tiếng Việt)"}],
+  "insights": ["string (tiếng Việt)"],
+  "recommendations": ["string (tiếng Việt)"],
+  "warnings": ["string (tiếng Việt)"],
+  "chartSuggestion": {"type": "column|line|pie", "title": "string (tiếng Việt)", "description": "string (tiếng Việt)"}
 }`;
 
 const GUIDE_SYSTEM_PROMPT = `Bạn là GIÁO VIÊN EXCEL chuyên nghiệp. Tạo hướng dẫn CHI TIẾT.
@@ -311,7 +300,7 @@ QUY TẮC:
 - Luôn có tips và phím tắt
 - Cảnh báo lỗi hay gặp
 
-TRẢ VỀ JSON (không markdown):
+TRẢ VỀ JSON:
 {
   "taskName": "Tên task rõ ràng",
   "steps": [
@@ -333,8 +322,13 @@ TRẢ VỀ JSON (không markdown):
  * Generate Excel formula from prompt
  * @param {string} prompt - User's request
  * @param {object} excelContext - Excel context data
+ * @param {object} options - { signal }
  */
-export async function generateFormula(prompt, excelContext = null) {
+export async function generateFormula(
+  prompt,
+  excelContext = null,
+  options = {}
+) {
   const model = await ensureModel();
 
   let userPrompt = `Yêu cầu: ${prompt}`;
@@ -365,33 +359,29 @@ export async function generateFormula(prompt, excelContext = null) {
     },
   };
 
-  const result = await callGenerateContent(model, payload);
+  const result = await callGenerateContent(model, payload, options);
   const cleanText = cleanJSONResponse(result.text);
 
   try {
     const parsed = JSON.parse(cleanText);
-    // Fix escape characters trong công thức
     if (parsed.formula) {
-      parsed.formula = fixFormulaEscapes(parsed.formula);
+      parsed.formula = fixFormulaPlaceholder(parsed.formula);
     }
     return parsed;
-  } catch (error) {
-    console.error("JSON Parse Error:", error);
-    console.error("Raw AI response:", result.text);
-    console.error("Cleaned text:", cleanText);
+  } catch (parseError) {
+    console.warn("JSON Parse failed, attempting fallback extraction...");
 
-    // Fallback: Trích xuất công thức từ text nếu có
-    const formulaMatch = result.text.match(/=\s*[A-Z]+[^"'\n]*/);
-    if (formulaMatch) {
+    // Fallback: Dùng extractFormulaFromText
+    const extractedFormula = extractFormulaFromText(result.text);
+    if (extractedFormula) {
       return {
-        formula: formulaMatch[0].trim(),
-        explanation:
-          "AI đã tạo công thức nhưng response không đúng format. Đây là công thức được trích xuất.",
+        formula: extractedFormula,
+        explanation: "Đã trích xuất công thức từ JSON lỗi định dạng.",
         example: "",
       };
     }
 
-    // Fallback: Trả về thông báo từ AI nếu không phải JSON
+    // Fallback cuối: Trả về text từ AI
     return {
       formula: "",
       explanation: result.text.substring(0, 500),
@@ -402,14 +392,14 @@ export async function generateFormula(prompt, excelContext = null) {
 
 /**
  * Analyze Excel data
- * @param {object} excelContext - Excel context with sample data
+ * @param {object} excelContext - Excel context
+ * @param {object} options - { signal }
  */
-export async function analyzeData(excelContext) {
-  if (
-    !excelContext ||
-    !excelContext.sampleData ||
-    excelContext.sampleData.length === 0
-  ) {
+export async function analyzeData(excelContext, options = {}) {
+  if (!excelContext) {
+    throw new Error("Excel context không được rỗng!");
+  }
+  if (!excelContext.sampleData || excelContext.sampleData.length === 0) {
     throw new Error("Không có dữ liệu để phân tích!");
   }
 
@@ -442,19 +432,30 @@ PHÂN TÍCH dữ liệu trên:
     },
   };
 
-  const result = await callGenerateContent(model, payload);
+  const result = await callGenerateContent(model, payload, options);
   const cleanText = cleanJSONResponse(result.text);
 
   try {
     return JSON.parse(cleanText);
   } catch (error) {
     console.error("JSON Parse Error:", error);
-    // Return fallback response
+
+    // Fallback: Trích xuất insights từ raw text
+    const summary = result.text.substring(0, 200);
+    const insights = [];
+
+    // Tìm các câu quan trọng
+    const sentences = result.text
+      .split(/[.!?]\s+/)
+      .filter((s) => s.length > 20);
+    insights.push.apply(insights, sentences.slice(0, 3));
+
     return {
-      summary: "AI đã phân tích nhưng gặp lỗi định dạng. Vui lòng thử lại.",
+      summary: summary || "Đã đọc dữ liệu nhưng gặp lỗi định dạng.",
       keyMetrics: [],
       trends: [],
-      insights: ["Dữ liệu đã được đọc thành công"],
+      insights:
+        insights.length > 0 ? insights : ["Dữ liệu đã được đọc thành công"],
       recommendations: ["Thử lại để nhận phân tích chi tiết"],
       warnings: [],
       chartSuggestion: null,
@@ -465,8 +466,9 @@ PHÂN TÍCH dữ liệu trên:
 /**
  * Generate step-by-step guide
  * @param {string} task - Task description
+ * @param {object} options - { signal }
  */
-export async function generateGuide(task) {
+export async function generateGuide(task, options = {}) {
   if (!task || !task.trim()) {
     throw new Error("Task description không được rỗng!");
   }
@@ -489,7 +491,7 @@ export async function generateGuide(task) {
     },
   };
 
-  const result = await callGenerateContent(model, payload);
+  const result = await callGenerateContent(model, payload, options);
   const cleanText = cleanJSONResponse(result.text);
 
   try {
@@ -500,7 +502,32 @@ export async function generateGuide(task) {
     return parsed;
   } catch (error) {
     console.error("JSON Parse Error:", error);
-    throw new Error("Response không hợp lệ. Thử mô tả task ngắn gọn hơn!");
+
+    // Fallback: Trích xuất steps từ raw text
+    const lines = result.text.split("\n").filter((l) => l.trim());
+    const steps = [];
+
+    // Tìm các bước (dòng bắt đầu bằng số hoặc -, •)
+    lines.forEach((line) => {
+      if (/^[\d\-•]/.test(line.trim())) {
+        steps.push({
+          title: line.trim().replace(/^[\d\-•.)\s]+/, ""),
+          description: "",
+          details: [],
+          tips: "",
+          warning: "",
+        });
+      }
+    });
+
+    if (steps.length > 0) {
+      return {
+        taskName: task,
+        steps: steps,
+      };
+    }
+
+    throw new Error("Không thể trích xuất hướng dẫn. Thử mô tả ngắn gọn hơn!");
   }
 }
 
@@ -514,32 +541,32 @@ export async function generateGuide(task) {
 function formatContextForPrompt(context) {
   if (!context) return "";
 
-  let contextText = "\n📊 CONTEXT TỪ EXCEL HIỆN TẠI:\n";
+  let contextText = "\nCONTEXT TỪ EXCEL HIỆN TẠI:\n";
   contextText +=
     "═══════════════════════════════════════════════════════════════════\n";
 
   // Sheet info + VỊ TRÍ QUAN TRỌNG
-  contextText += `📄 Sheet: ${context.sheetName}\n`;
-  contextText += `📍 Vùng dữ liệu: ${context.usedRange}\n`;
+  contextText += `Sheet: ${context.sheetName}\n`;
+  contextText += `Vùng dữ liệu: ${context.usedRange}\n`;
 
   // THÔNG TIN VỊ TRÍ CHÍNH XÁC
   if (context.startRow) {
-    contextText += `🎯 Header bắt đầu từ hàng: ${context.startRow}\n`;
-    contextText += `🎯 Data bắt đầu từ hàng: ${context.startRow + 1}\n`;
+    contextText += `Header bắt đầu từ hàng: ${context.startRow}\n`;
+    contextText += `Data bắt đầu từ hàng: ${context.startRow + 1}\n`;
   }
 
   // Ô đang được chọn - RẤT QUAN TRỌNG cho việc tạo công thức
   if (context.selectedCell) {
-    contextText += `📌 Ô đang chọn: ${context.selectedCell.address} (Hàng ${context.selectedCell.row}, Cột ${context.selectedCell.column})\n`;
+    contextText += `Ô đang chọn: ${context.selectedCell.address} (Hàng ${context.selectedCell.row}, Cột ${context.selectedCell.column})\n`;
   }
   contextText += "\n";
 
   // Headers and columns VỚI ĐỊA CHỈ CHÍNH XÁC
   if (context.columns && context.columns.length > 0) {
-    contextText += "📋 CẤU TRÚC CỘT (với địa chỉ thực tế):\n";
+    contextText += "CẤU TRÚC CỘT (với địa chỉ thực tế):\n";
     context.columns.forEach((col) => {
       if (col.hasData) {
-        contextText += `  • Cột ${col.column} "${col.name}": ${col.type}`;
+        contextText += `  - Cột ${col.column} "${col.name}": ${col.type}`;
         // Thêm data range thực tế
         if (col.dataRange) {
           contextText += ` [Range: ${col.dataRange}]`;
@@ -554,7 +581,7 @@ function formatContextForPrompt(context) {
 
   // Raw data preview với địa chỉ ô chính xác
   if (context.rawDataPreview && context.rawDataPreview.length > 0) {
-    contextText += `\n📊 DỮ LIỆU VỚI ĐỊA CHỈ Ô:\n`;
+    contextText += `\nDỮ LIỆU VỚI ĐỊA CHỈ Ô:\n`;
     context.rawDataPreview.forEach((rowData) => {
       contextText += `  Hàng ${rowData.row}: `;
       const cells = Object.entries(rowData.cells).slice(0, 5);
@@ -564,7 +591,7 @@ function formatContextForPrompt(context) {
   } else if (context.sampleData && context.sampleData.length > 0) {
     // Fallback to old format
     const startRow = context.startRow || 1;
-    contextText += `\n📊 DỮ LIỆU MẪU:\n`;
+    contextText += `\nDỮ LIỆU MẪU:\n`;
     context.sampleData.forEach((row) => {
       const rowNum = row._rowNumber || "?";
       contextText += `  Hàng ${rowNum}: `;
@@ -576,18 +603,16 @@ function formatContextForPrompt(context) {
     });
   }
 
-  // ============================================
   // NAMED TABLES (Excel Tables created with Ctrl+T)
-  // ============================================
   if (context.namedTables && context.namedTables.length > 0) {
-    contextText += `\n📋 NAMED TABLES (Excel Tables):\n`;
+    contextText += `\nNAMED TABLES (Excel Tables):\n`;
     context.namedTables.forEach((table) => {
-      contextText += `  🔹 Table "${table.name}":\n`;
-      contextText += `     - Columns: ${table.columns.join(", ")}\n`;
-      contextText += `     - Data Range: ${table.dataRange} (${table.rowCount} rows)\n`;
-      contextText += `     - Có thể dùng: ${table.name}[ColumnName] trong công thức\n`;
+      contextText += `  - Table "${table.name}":\n`;
+      contextText += `    Columns: ${table.columns.join(", ")}\n`;
+      contextText += `    Data Range: ${table.dataRange} (${table.rowCount} rows)\n`;
+      contextText += `    Có thể dùng: ${table.name}[ColumnName] trong công thức\n`;
     });
-    contextText += `\n  💡 GỢI Ý: Dùng Table references như Customers[CustomerID], Orders[Qty] thay vì A:A, B:B\n`;
+    contextText += `\n  GỢI Ý: Dùng Table references như Customers[CustomerID], Orders[Qty] thay vì A:A, B:B\n`;
   }
 
   contextText +=

@@ -17,6 +17,7 @@ import {
   DataUsage24Regular,
   SignOut24Regular,
   Person24Regular,
+  History24Regular,
 } from "@fluentui/react-icons";
 
 // Components
@@ -25,6 +26,7 @@ import FormulaGenerator from "./FormulaGenerator";
 import StepByStepGuide from "./StepByStepGuide";
 import DataAnalyzer from "./DataAnalyzer";
 import AuthPage from "./AuthPage";
+import History from "./History";
 
 // API Service
 import { isLoggedIn, getProfile, getCredits, logout } from "../../services/apiService";
@@ -152,13 +154,16 @@ const App = (props) => {
       <div className="tabs-container">
         <TabList selectedValue={selectedTab} onTabSelect={handleTabChange} size="medium">
           <Tab value="formula" icon={<Sparkle24Regular />}>
-            Formula
+            Công thức
           </Tab>
           <Tab value="analyzer" icon={<DataUsage24Regular />}>
-            Analyzer
+            Phân tích
           </Tab>
           <Tab value="stepbystep" icon={<Lightbulb24Regular />}>
-            Guide
+            Hướng dẫn
+          </Tab>
+          <Tab value="history" icon={<History24Regular />}>
+            Lịch sử
           </Tab>
         </TabList>
       </div>
@@ -183,6 +188,7 @@ const App = (props) => {
             onRequestComplete={refreshCredits}
           />
         )}
+        {selectedTab === "history" && <History />}
       </div>
     </div>
   );

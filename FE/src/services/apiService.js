@@ -244,6 +244,15 @@ export async function deleteAIHistory(id) {
   });
 }
 
+/**
+ * Hủy request AI đang pending
+ */
+export async function cancelAIRequest(requestId) {
+  return apiCall(`/ai/cancel/${requestId}`, {
+    method: "POST",
+  });
+}
+
 // ============================================================================
 // EXCEL CONTEXT SERVICE (Client-side - không qua BE)
 // ============================================================================
@@ -358,6 +367,7 @@ export default {
   // AI History
   getAIHistory,
   deleteAIHistory,
+  cancelAIRequest,
 
   // Excel Context (client-side)
   getExcelContext,

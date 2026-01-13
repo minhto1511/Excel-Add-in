@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   askAI,
+  cancelAIRequest,
   getAIHistory,
   deleteAIHistory,
 } from "../controllers/ai.controller.js";
@@ -13,6 +14,9 @@ router.use(authenticate);
 
 // Gọi AI (cần check credits)
 router.post("/ask", checkCredits, askAI);
+
+// Hủy request AI đang pending
+router.post("/cancel/:requestId", cancelAIRequest);
 
 // Lấy lịch sử
 router.get("/history", getAIHistory);

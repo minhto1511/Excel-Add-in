@@ -84,12 +84,22 @@ aiHistorySchema.statics.findCached = async function (
   const hashInput = JSON.stringify({ prompt, type, context: excelContext });
   const hash = crypto.createHash("md5").update(hashInput).digest("hex");
 
-  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  // Different TTL for different types
+  let cacheDuration;
+  if (type === "analysis") {
+    cacheDuration = 5 * 60 * 1000; // 5 minutes - data changes frequently
+  } else if (type === "formula") {
+    cacheDuration = 60 * 60 * 1000; // 1 hour - formulas are stable
+  } else {
+    cacheDuration = 30 * 60 * 1000; // 30 minutes - guides are semi-stable
+  }
+
+  const cacheExpiry = new Date(Date.now() - cacheDuration);
 
   return await this.findOne({
     "input.contextHash": hash,
     type,
-    createdAt: { $gte: oneDayAgo },
+    createdAt: { $gte: cacheExpiry },
   });
 };
 

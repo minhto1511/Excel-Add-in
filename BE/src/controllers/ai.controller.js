@@ -1,9 +1,16 @@
 import AIHistory from "../models/AIHistory.js";
 import User from "../models/User.js";
 import * as geminiService from "../services/gemini.service.js";
+import crypto from "crypto";
+
+// Track pending requests for cancellation
+const pendingRequests = new Map();
 
 // Gọi AI - Sử dụng Gemini API thật
 export const askAI = async (req, res) => {
+  // Generate unique request ID
+  const requestId = crypto.randomBytes(16).toString("hex");
+
   try {
     const { prompt, type, excelContext } = req.body;
     const user = req.user;
@@ -137,21 +144,46 @@ export const askAI = async (req, res) => {
     const startTime = Date.now();
     let aiResult;
 
+    // Store signal for cancellation
+    const abortController = new AbortController();
+    pendingRequests.set(requestId, abortController);
+
+    // Send requestId to client immediately
+    res.setHeader("X-Request-ID", requestId);
+
     try {
+      const options = { signal: abortController.signal };
+
       switch (type) {
         case "formula":
-          aiResult = await geminiService.generateFormula(prompt, excelContext);
+          aiResult = await geminiService.generateFormula(
+            prompt,
+            excelContext,
+            options
+          );
           break;
         case "analysis":
-          aiResult = await geminiService.analyzeData(excelContext);
+          aiResult = await geminiService.analyzeData(excelContext, options);
           break;
         case "guide":
-          aiResult = await geminiService.generateGuide(prompt);
+          aiResult = await geminiService.generateGuide(prompt, options);
           break;
       }
     } catch (aiError) {
+      // Clean up pending request
+      pendingRequests.delete(requestId);
+
       // AI fail = không trừ credit
       console.error("Lỗi gọi Gemini API:", aiError);
+
+      // Check if request was cancelled
+      if (aiError.name === "AbortError") {
+        return res.status(499).json({
+          message: "Request đã bị hủy",
+          cancelled: true,
+        });
+      }
+
       return res.status(500).json({
         message: aiError.message || "Lỗi gọi AI. Vui lòng thử lại!",
         creditsRemaining:
@@ -159,6 +191,9 @@ export const askAI = async (req, res) => {
             ? "unlimited"
             : user.subscription.credits,
       });
+    } finally {
+      // Always clean up
+      pendingRequests.delete(requestId);
     }
 
     const latency = Date.now() - startTime;
@@ -195,6 +230,7 @@ export const askAI = async (req, res) => {
     res.status(200).json({
       result: aiResult,
       cached: false,
+      requestId: requestId,
       historyId: history._id,
       creditsRemaining:
         user.subscription.plan === "pro"
@@ -202,8 +238,35 @@ export const askAI = async (req, res) => {
           : user.subscription.credits,
     });
   } catch (error) {
+    // Clean up on any error
+    pendingRequests.delete(requestId);
     console.error("Lỗi gọi AI:", error);
     res.status(500).json({ message: "Lỗi server. Vui lòng thử lại!" });
+  }
+};
+
+// Hủy request AI đang pending
+export const cancelAIRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+
+    const controller = pendingRequests.get(requestId);
+    if (controller) {
+      controller.abort();
+      pendingRequests.delete(requestId);
+      return res.status(200).json({
+        cancelled: true,
+        message: "Đã hủy request thành công",
+      });
+    }
+
+    return res.status(404).json({
+      cancelled: false,
+      message: "Không tìm thấy request hoặc request đã hoàn thành",
+    });
+  } catch (error) {
+    console.error("Lỗi hủy request:", error);
+    res.status(500).json({ message: "Lỗi hủy request" });
   }
 };
 

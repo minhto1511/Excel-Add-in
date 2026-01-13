@@ -21,12 +21,13 @@ import {
 } from "@fluentui/react-icons";
 
 // API Service
-import { analyzeExcelData, getExcelContext } from "../../services/apiService";
+import { analyzeExcelData, getExcelContext, cancelAIRequest } from "../../services/apiService";
 
 const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
   const [analysis, setAnalysis] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [currentAbortController, setCurrentAbortController] = useState(null);
 
   /**
    * Analyze data - gọi Backend API
@@ -50,8 +51,26 @@ const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
         throw new Error("Không có dữ liệu để phân tích! Vui lòng chọn vùng dữ liệu trong Excel.");
       }
 
-      // TODO BACKEND: Gọi API để analyze
-      const result = await analyzeExcelData(excelContext);
+      // Gọi API với AbortController
+      const abortController = new AbortController();
+      setCurrentAbortController(abortController);
+
+      const response = await fetch(`http://localhost:3001/api/v1/ai/ask`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify({
+          type: "analysis",
+          prompt: "analyze",
+          excelContext,
+        }),
+        signal: abortController.signal,
+      });
+
+      const data = await response.json();
+      const result = data.result;
       setAnalysis(result);
 
       // Notify parent to refresh credits
@@ -59,9 +78,24 @@ const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
         onRequestComplete();
       }
     } catch (err) {
-      setError(err.message || "Đã xảy ra lỗi!");
+      if (err.name === "AbortError") {
+        setError("Đã hủy phân tích");
+      } else {
+        setError(err.message || "Đã xảy ra lỗi!");
+      }
     } finally {
       setIsLoading(false);
+      setCurrentAbortController(null);
+    }
+  };
+
+  /**
+   * Cancel pending request
+   */
+  const handleCancel = () => {
+    if (currentAbortController) {
+      currentAbortController.abort();
+      setCurrentAbortController(null);
     }
   };
 
@@ -87,18 +121,24 @@ const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
       </div>
 
       <Card className="card">
-        <Button
-          appearance="primary"
-          icon={isLoading ? <Spinner size="tiny" /> : <Sparkle24Filled />}
-          onClick={handleAnalyze}
-          disabled={isLoading}
-          className="btn-primary w-100"
-        >
-          {isLoading ? "Đang phân tích..." : "Phân tích dữ liệu"}
-        </Button>
+        {!isLoading ? (
+          <Button
+            appearance="primary"
+            icon={<Sparkle24Filled />}
+            onClick={handleAnalyze}
+            className="btn-primary w-100"
+          >
+            Phân tích dữ liệu
+          </Button>
+        ) : (
+          <Button appearance="secondary" onClick={handleCancel} className="w-100">
+            <Spinner size="tiny" style={{ marginRight: "8px" }} />
+            Đang phân tích... (Nhấn để hủy)
+          </Button>
+        )}
 
         <Text size={200} className="d-block mt-12" style={{ color: "#6b7280" }}>
-          💡 AI sẽ đọc dữ liệu trong Excel và đưa ra insights, trends, recommendations
+          AI sẽ đọc dữ liệu trong Excel và đưa ra insights, trends, recommendations
         </Text>
       </Card>
 
@@ -128,7 +168,7 @@ const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
               className="d-block mb-8"
               style={{ color: "#047857" }}
             >
-              📊 Tóm tắt
+              Tóm tắt
             </Text>
             <Text size={300} style={{ color: "#065f46", lineHeight: "1.6" }}>
               {analysis.summary}
@@ -139,16 +179,17 @@ const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
           {analysis.keyMetrics && analysis.keyMetrics.length > 0 && (
             <Card className="card">
               <Text weight="semibold" size={400} className="d-block mb-12">
-                📈 Chỉ số quan trọng
+                Chỉ số quan trọng
               </Text>
               <div className="metrics-grid">
                 {analysis.keyMetrics.map((metric, idx) => (
                   <div key={idx} className="metric-card">
-                    <div className="metric-icon">{metric.icon}</div>
-                    <Text size={200} className="metric-label">
+                    <Text size={200} style={{ color: "#6b7280", marginBottom: "4px" }}>
                       {metric.label}
                     </Text>
-                    <Text className="metric-value">{metric.value}</Text>
+                    <Text size={400} weight="semibold" style={{ color: "#111827" }}>
+                      {metric.value}
+                    </Text>
                   </div>
                 ))}
               </div>
@@ -159,7 +200,7 @@ const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
           {analysis.trends && analysis.trends.length > 0 && (
             <Card className="card">
               <Text weight="semibold" size={400} className="d-block mb-12">
-                📊 Xu hướng
+                Xu hướng
               </Text>
               {analysis.trends.map((trend, idx) => (
                 <div key={idx} className={getTrendClass(trend.type)}>
@@ -176,7 +217,7 @@ const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
           {analysis.insights && analysis.insights.length > 0 && (
             <Card className="card">
               <Text weight="semibold" size={400} className="d-block mb-12">
-                💡 Phát hiện thú vị
+                Phát hiện thú vị
               </Text>
               <ul className="insights-list">
                 {analysis.insights.map((insight, idx) => (
@@ -195,7 +236,7 @@ const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
           {analysis.recommendations && analysis.recommendations.length > 0 && (
             <Card className="card">
               <Text weight="semibold" size={400} className="d-block mb-12">
-                🎯 Đề xuất hành động
+                Đề xuất hành động
               </Text>
               <ul className="recommendations-list">
                 {analysis.recommendations.map((rec, idx) => (
@@ -221,7 +262,7 @@ const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
           {analysis.warnings && analysis.warnings.length > 0 && (
             <Card className="card">
               <Text weight="semibold" size={400} className="d-block mb-12">
-                ⚠️ Cảnh báo
+                Cảnh báo
               </Text>
               <ul className="warnings-list">
                 {analysis.warnings.map((warning, idx) => (
@@ -245,7 +286,7 @@ const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
                 className="d-block mb-8"
                 style={{ color: "#047857" }}
               >
-                📊 Gợi ý biểu đồ
+                Gợi ý biểu đồ
               </Text>
               <div className="chart-suggestion-box mb-8">
                 <ChartMultiple24Regular style={{ color: "#10b981" }} />

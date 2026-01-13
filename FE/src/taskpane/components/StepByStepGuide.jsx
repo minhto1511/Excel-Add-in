@@ -20,7 +20,7 @@ import {
 } from "@fluentui/react-icons";
 
 // API Service
-import { generateStepByStep } from "../../services/apiService";
+import { generateStepByStep, cancelAIRequest } from "../../services/apiService";
 
 const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
   const [task, setTask] = useState("");
@@ -29,6 +29,7 @@ const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [currentAbortController, setCurrentAbortController] = useState(null);
 
   const exampleTasks = [
     "Tạo biểu đồ cột từ dữ liệu",
@@ -55,8 +56,25 @@ const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
     setCurrentStep(0);
 
     try {
-      // TODO BACKEND: Gọi API
-      const result = await generateStepByStep(task);
+      // Gọi API với AbortController
+      const abortController = new AbortController();
+      setCurrentAbortController(abortController);
+
+      const response = await fetch(`http://localhost:3001/api/v1/ai/ask`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify({
+          type: "guide",
+          prompt: task,
+        }),
+        signal: abortController.signal,
+      });
+
+      const data = await response.json();
+      const result = data.result;
       setTaskName(result.taskName);
       setSteps(result.steps);
 
@@ -65,9 +83,24 @@ const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
         onRequestComplete();
       }
     } catch (err) {
-      setError(err.message || "Đã xảy ra lỗi!");
+      if (err.name === "AbortError") {
+        setError("Đã hủy hướng dẫn");
+      } else {
+        setError(err.message || "Đã xảy ra lỗi!");
+      }
     } finally {
       setIsLoading(false);
+      setCurrentAbortController(null);
+    }
+  };
+
+  /**
+   * Cancel pending request
+   */
+  const handleCancel = () => {
+    if (currentAbortController) {
+      currentAbortController.abort();
+      setCurrentAbortController(null);
     }
   };
 
@@ -116,15 +149,22 @@ const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
           />
         </Field>
 
-        <Button
-          appearance="primary"
-          icon={isLoading ? <Spinner size="tiny" /> : <Sparkle24Regular />}
-          onClick={handleGenerate}
-          disabled={isLoading || !task.trim()}
-          className="btn-primary w-100 mt-16"
-        >
-          {isLoading ? "Đang tạo hướng dẫn..." : "Tạo hướng dẫn"}
-        </Button>
+        {!isLoading ? (
+          <Button
+            appearance="primary"
+            icon={<Sparkle24Regular />}
+            onClick={handleGenerate}
+            disabled={!task.trim()}
+            className="btn-primary w-100 mt-16"
+          >
+            Tạo hướng dẫn
+          </Button>
+        ) : (
+          <Button appearance="secondary" onClick={handleCancel} className="w-100 mt-16">
+            <Spinner size="tiny" style={{ marginRight: "8px" }} />
+            Đang tạo hướng dẫn... (Nhấn để hủy)
+          </Button>
+        )}
 
         <div className="mt-16">
           <Text size={200} className="d-block mb-8">
@@ -260,9 +300,6 @@ const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
           <Lightbulb24Regular className="empty-state__icon" />
           <Text size={400} className="d-block mb-8">
             Hướng dẫn chi tiết sẽ xuất hiện ở đây
-          </Text>
-          <Text size={300} style={{ color: "#9ca3af" }}>
-            Mô tả task bạn muốn thực hiện và nhấn "Tạo hướng dẫn"
           </Text>
         </div>
       )}

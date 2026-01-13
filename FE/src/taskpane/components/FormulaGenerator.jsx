@@ -24,6 +24,7 @@ import {
   generateExcelFormula,
   getExcelContext,
   insertFormulaToExcel,
+  cancelAIRequest,
 } from "../../services/apiService";
 
 const FormulaGenerator = ({ disabled = false, onRequestComplete }) => {
@@ -37,6 +38,7 @@ const FormulaGenerator = ({ disabled = false, onRequestComplete }) => {
   const [useContext, setUseContext] = useState(true);
   const [contextInfo, setContextInfo] = useState(null);
   const [insertSuccess, setInsertSuccess] = useState(false);
+  const [currentAbortController, setCurrentAbortController] = useState(null);
 
   const examplePrompts = [
     "Tính tổng các ô từ A1 đến A10",
@@ -78,8 +80,26 @@ const FormulaGenerator = ({ disabled = false, onRequestComplete }) => {
         }
       }
 
-      // TODO BACKEND: Gọi API endpoint thay vì xử lý logic ở frontend
-      const result = await generateExcelFormula(prompt, excelContext);
+      // Gọi API với AbortController
+      const abortController = new AbortController();
+      setCurrentAbortController(abortController);
+
+      const response = await fetch(`http://localhost:3001/api/v1/ai/ask`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify({
+          type: "formula",
+          prompt,
+          excelContext,
+        }),
+        signal: abortController.signal,
+      });
+
+      const data = await response.json();
+      const result = data.result;
 
       // Xử lý trường hợp AI trả về formula rỗng (yêu cầu không rõ ràng)
       if (!result.formula || result.formula.trim() === "") {
@@ -99,9 +119,24 @@ const FormulaGenerator = ({ disabled = false, onRequestComplete }) => {
         onRequestComplete();
       }
     } catch (err) {
-      setError(err.message || "Đã xảy ra lỗi!");
+      if (err.name === "AbortError") {
+        setError("Đã hủy yêu cầu");
+      } else {
+        setError(err.message || "Đã xảy ra lỗi!");
+      }
     } finally {
       setIsLoading(false);
+      setCurrentAbortController(null);
+    }
+  };
+
+  /**
+   * Cancel pending request
+   */
+  const handleCancel = () => {
+    if (currentAbortController) {
+      currentAbortController.abort();
+      setCurrentAbortController(null);
     }
   };
 
@@ -176,15 +211,22 @@ const FormulaGenerator = ({ disabled = false, onRequestComplete }) => {
           />
         </div>
 
-        <Button
-          appearance="primary"
-          icon={isLoading ? <Spinner size="tiny" /> : <Sparkle24Regular />}
-          onClick={handleGenerate}
-          disabled={isLoading || !prompt.trim()}
-          className="btn-primary w-100"
-        >
-          {isLoading ? "Đang tạo công thức..." : "Tạo công thức"}
-        </Button>
+        {!isLoading ? (
+          <Button
+            appearance="primary"
+            icon={<Sparkle24Regular />}
+            onClick={handleGenerate}
+            disabled={!prompt.trim()}
+            className="btn-primary w-100"
+          >
+            Tạo công thức
+          </Button>
+        ) : (
+          <Button appearance="secondary" onClick={handleCancel} className="w-100">
+            <Spinner size="tiny" style={{ marginRight: "8px" }} />
+            Đang tạo công thức... (Nhấn để hủy)
+          </Button>
+        )}
 
         <div className="mt-16">
           <Text size={200} className="d-block mb-8">
