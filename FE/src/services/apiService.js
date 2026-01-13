@@ -93,32 +93,90 @@ async function apiCall(endpoint, options = {}) {
 }
 
 // ============================================================================
-// AUTHENTICATION
+// AUTHENTICATION (NEW API with OTP)
 // ============================================================================
 
 /**
- * Đăng ký user mới
+ * Lưu refresh token
  */
-export async function register(email, password, name) {
-  const data = await apiCall("/users/register", {
+export function setRefreshToken(token) {
+  localStorage.setItem("refresh_token", token);
+}
+
+/**
+ * Lấy refresh token
+ */
+function getRefreshToken() {
+  return localStorage.getItem("refresh_token");
+}
+
+/**
+ * Xóa tất cả tokens
+ */
+export function clearAllTokens() {
+  localStorage.removeItem("auth_token");
+  localStorage.removeItem("refresh_token");
+}
+
+/**
+ * Đăng ký user mới (sends OTP email)
+ * @returns { message, otpSent, email }
+ */
+export async function register(email, password, confirmPassword, name) {
+  const data = await apiCall("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ email, password, name }),
+    body: JSON.stringify({ email, password, confirmPassword, name }),
   });
   return data;
+}
+
+/**
+ * Verify email OTP sau khi đăng ký
+ * @returns { user, token, refreshToken }
+ */
+export async function verifyEmailOTP(email, otp) {
+  const data = await apiCall("/auth/verify-email-otp", {
+    method: "POST",
+    body: JSON.stringify({ email, otp }),
+  });
+
+  // Lưu tokens
+  if (data.token) {
+    setAuthToken(data.token);
+  }
+  if (data.refreshToken) {
+    setRefreshToken(data.refreshToken);
+  }
+
+  return data;
+}
+
+/**
+ * Resend OTP
+ * @returns { message, cooldownRemaining, resendsRemaining }
+ */
+export async function resendOTP(email, purpose = "signup") {
+  return apiCall("/auth/resend-otp", {
+    method: "POST",
+    body: JSON.stringify({ email, purpose }),
+  });
 }
 
 /**
  * Đăng nhập
  */
 export async function login(email, password) {
-  const data = await apiCall("/users/login", {
+  const data = await apiCall("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
 
-  // Lưu token
+  // Lưu tokens
   if (data.token) {
     setAuthToken(data.token);
+  }
+  if (data.refreshToken) {
+    setRefreshToken(data.refreshToken);
   }
 
   return data;
@@ -129,21 +187,78 @@ export async function login(email, password) {
  */
 export async function logout() {
   try {
-    await apiCall("/users/logout", {
+    const refreshToken = getRefreshToken();
+    await apiCall("/auth/logout", {
       method: "POST",
+      body: JSON.stringify({ refreshToken }),
     });
   } catch (error) {
     // Ignore logout errors
   } finally {
-    clearAuthToken();
+    clearAllTokens();
   }
+}
+
+/**
+ * Forgot password - gửi OTP reset
+ */
+export async function forgotPassword(email) {
+  return apiCall("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+/**
+ * Verify reset OTP
+ * @returns { message, resetToken }
+ */
+export async function verifyResetOTP(email, otp) {
+  return apiCall("/auth/verify-reset-otp", {
+    method: "POST",
+    body: JSON.stringify({ email, otp }),
+  });
+}
+
+/**
+ * Reset password với token
+ */
+export async function resetPassword(resetToken, newPassword, confirmPassword) {
+  return apiCall("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ resetToken, newPassword, confirmPassword }),
+  });
+}
+
+/**
+ * Refresh access token
+ */
+export async function refreshAccessToken() {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    throw new Error("No refresh token");
+  }
+
+  const data = await apiCall("/auth/refresh", {
+    method: "POST",
+    body: JSON.stringify({ refreshToken }),
+  });
+
+  if (data.token) {
+    setAuthToken(data.token);
+  }
+  if (data.refreshToken) {
+    setRefreshToken(data.refreshToken);
+  }
+
+  return data;
 }
 
 /**
  * Lấy thông tin profile
  */
 export async function getProfile() {
-  return apiCall("/users/profile");
+  return apiCall("/auth/profile");
 }
 
 /**
@@ -151,6 +266,42 @@ export async function getProfile() {
  */
 export async function getCredits() {
   return apiCall("/users/credits");
+}
+
+// ============================================================================
+// PAYMENT
+// ============================================================================
+
+/**
+ * Lấy danh sách giá
+ */
+export async function getPricing() {
+  return apiCall("/payments/pricing");
+}
+
+/**
+ * Tạo payment intent (QR code)
+ * @returns { intent: { id, amount, transferCode, qrData, expiresAt } }
+ */
+export async function createPaymentIntent(plan) {
+  return apiCall("/payments/intents", {
+    method: "POST",
+    body: JSON.stringify({ plan }),
+  });
+}
+
+/**
+ * Lấy trạng thái payment intent (polling)
+ */
+export async function getPaymentIntentStatus(intentId) {
+  return apiCall(`/payments/intents/${intentId}`);
+}
+
+/**
+ * Lấy lịch sử thanh toán
+ */
+export async function getPaymentHistory(page = 1, limit = 10) {
+  return apiCall(`/payments/history?page=${page}&limit=${limit}`);
 }
 
 // ============================================================================

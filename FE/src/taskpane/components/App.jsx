@@ -10,7 +10,16 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import { Tab, TabList, Button, Text, Spinner } from "@fluentui/react-components";
+import {
+  Tab,
+  TabList,
+  Button,
+  Text,
+  Spinner,
+  Dialog,
+  DialogSurface,
+  DialogBody,
+} from "@fluentui/react-components";
 import {
   Sparkle24Regular,
   Lightbulb24Regular,
@@ -18,6 +27,7 @@ import {
   SignOut24Regular,
   Person24Regular,
   History24Regular,
+  Star24Regular,
 } from "@fluentui/react-icons";
 
 // Components
@@ -27,6 +37,7 @@ import StepByStepGuide from "./StepByStepGuide";
 import DataAnalyzer from "./DataAnalyzer";
 import AuthPage from "./AuthPage";
 import History from "./History";
+import UpgradePro from "./UpgradePro";
 
 // API Service
 import { isLoggedIn, getProfile, getCredits, logout } from "../../services/apiService";
@@ -38,6 +49,7 @@ const App = (props) => {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [credits, setCredits] = useState(null);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
 
   // Check authentication on mount
   useEffect(() => {
@@ -134,7 +146,15 @@ const App = (props) => {
           {credits?.plan === "pro" ? (
             <Text className="credits-badge credits-badge--pro">PRO ∞</Text>
           ) : (
-            <Text className="credits-badge">{credits?.credits ?? 0} lượt còn lại</Text>
+            <Button
+              appearance="subtle"
+              size="small"
+              icon={<Star24Regular />}
+              onClick={() => setShowUpgradeDialog(true)}
+              className="credits-badge"
+            >
+              {credits?.credits ?? 0} lượt | Nâng cấp
+            </Button>
           )}
         </div>
         <Button appearance="subtle" icon={<SignOut24Regular />} onClick={handleLogout} size="small">
@@ -142,11 +162,18 @@ const App = (props) => {
         </Button>
       </div>
 
-      {/* No Credits Warning */}
+      {/* No Credits Warning with Upgrade Button */}
       {credits?.plan !== "pro" && credits?.credits <= 0 && (
-        <div className="no-credits-banner">
-          <Text weight="semibold">⚠️ Bạn đã hết lượt sử dụng miễn phí!</Text>
-          <Text size={200}>Liên hệ admin để nâng cấp lên Pro và sử dụng không giới hạn.</Text>
+        <div className="upgrade-banner">
+          <Text className="upgrade-banner__text">⚠️ Bạn đã hết lượt sử dụng miễn phí!</Text>
+          <Button
+            appearance="primary"
+            size="small"
+            icon={<Star24Regular />}
+            onClick={() => setShowUpgradeDialog(true)}
+          >
+            Nâng cấp Pro
+          </Button>
         </div>
       )}
 
@@ -190,6 +217,22 @@ const App = (props) => {
         )}
         {selectedTab === "history" && <History />}
       </div>
+
+      {/* Upgrade Pro Dialog */}
+      <Dialog open={showUpgradeDialog} onOpenChange={(e, data) => setShowUpgradeDialog(data.open)}>
+        <DialogSurface style={{ maxWidth: "480px" }}>
+          <DialogBody>
+            <UpgradePro
+              onClose={() => setShowUpgradeDialog(false)}
+              onUpgradeSuccess={() => {
+                setShowUpgradeDialog(false);
+                checkAuth(); // Refresh user data
+              }}
+              currentPlan={credits?.plan}
+            />
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </div>
   );
 };
