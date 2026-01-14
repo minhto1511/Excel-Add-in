@@ -7,12 +7,10 @@ export const authenticate = async (req, res, next) => {
     // Lấy token từ header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res
-        .status(401)
-        .json({
-          error: "NO_TOKEN",
-          message: "Không có token, vui lòng đăng nhập",
-        });
+      return res.status(401).json({
+        error: "NO_TOKEN",
+        message: "Không có token, vui lòng đăng nhập",
+      });
     }
 
     const token = authHeader.split(" ")[1];
@@ -93,8 +91,8 @@ export const checkCredits = async (req, res, next) => {
   try {
     const user = req.user;
 
-    // Pro user: không giới hạn
-    if (user.subscription.plan === "pro") {
+    // Pro user hoặc Admin: không giới hạn
+    if (user.subscription.plan === "pro" || user.role === "admin") {
       return next();
     }
 
@@ -114,5 +112,21 @@ export const checkCredits = async (req, res, next) => {
     res
       .status(500)
       .json({ error: "INTERNAL_ERROR", message: "Lỗi kiểm tra credits" });
+  }
+};
+// Middleware kiểm tra quyền admin
+export const adminMiddleware = async (req, res, next) => {
+  try {
+    const user = req.user;
+    if (!user || user.role !== "admin") {
+      return res.status(403).json({
+        error: "FORBIDDEN",
+        message: "Bạn không có quyền truy cập khu vực quản trị",
+      });
+    }
+    next();
+  } catch (error) {
+    console.error("Lỗi kiểm tra quyền admin:", error);
+    res.status(500).json({ error: "INTERNAL_ERROR", message: "Lỗi hệ thống" });
   }
 };

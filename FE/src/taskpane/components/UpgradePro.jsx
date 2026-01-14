@@ -130,7 +130,10 @@ const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
 
       pollingRef.current = setInterval(async () => {
         try {
+          console.log("Polling intent status:", intentId);
           const statusData = await getPaymentIntentStatus(intentId);
+          console.log("Status received:", statusData.status);
+
           if (statusData.status === "paid") {
             clearInterval(pollingRef.current);
             setStatus("paid");
@@ -141,8 +144,16 @@ const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
           }
         } catch (err) {
           console.error("Polling error:", err);
+          // Nếu lỗi 401 (token expired), dừng polling và thông báo
+          if (err.message?.includes("hết hạn") || err.message?.includes("401")) {
+            clearInterval(pollingRef.current);
+            setError(
+              "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại để kiểm tra trạng thái thanh toán."
+            );
+            setStatus("error");
+          }
         }
-      }, 5000);
+      }, 3000); // Polling mỗi 3 giây thay vì 5
     },
     [onUpgradeSuccess]
   );

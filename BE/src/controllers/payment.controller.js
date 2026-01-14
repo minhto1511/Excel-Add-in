@@ -296,10 +296,9 @@ export const manualMatchTransaction = async (req, res) => {
     );
 
     // Audit log
-    await AuditLog.log("payment_completed", {
+    await AuditLog.log("admin_manual_match", {
       userId: req.user._id,
       metadata: {
-        action: "manual_match",
         transactionId,
         intentId,
       },

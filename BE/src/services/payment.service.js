@@ -1,6 +1,7 @@
 import PaymentIntent from "../models/PaymentIntent.js";
 import PaymentTransaction from "../models/PaymentTransaction.js";
 import WebhookEvent from "../models/WebhookEvent.js";
+import WebhookLog from "../models/WebhookLog.js";
 import User from "../models/User.js";
 import AuditLog from "../models/AuditLog.js";
 import emailService from "./email.service.js";
@@ -187,25 +188,26 @@ class PaymentService {
       payload.tid?.toString() ||
       `casso_${Date.now()}`;
 
-    // 2. Check and create webhook event (idempotency check)
-    const { event: webhookEvent, alreadyExists } =
-      await WebhookEvent.createEvent("casso", eventId, payload, signature);
+    const startTime = Date.now();
+    let signatureStatus = "skipped"; // Default to skipped if no secret or dev mode
 
-    if (alreadyExists && webhookEvent.processed) {
-      console.log("Webhook already processed:", eventId);
-      return { status: "already_processed", eventId };
-    }
-
-    // 3. Verify signature
+    // 1. Verify signature
     const signatureValid = this.verifyCassoSignature(payload, signature);
-    await webhookEvent.setSignatureValid(signatureValid);
 
     if (!signatureValid && process.env.CASSO_WEBHOOK_SECRET) {
-      await webhookEvent.markProcessed(null, "INVALID_SIGNATURE");
+      signatureStatus = "invalid";
+      await WebhookLog.create({
+        provider: "casso",
+        headers,
+        body: payload,
+        signatureStatus,
+        processingStatus: "failed",
+        error: "INVALID_SIGNATURE",
+        responseTime: Date.now() - startTime,
+      });
       throw new Error("INVALID_SIGNATURE");
     }
 
-    // 4. Handle different Casso payload formats
     // V1: data is array of transactions
     // V2: data is single transaction object
     let transactions = [];
@@ -221,24 +223,43 @@ class PaymentService {
     }
 
     const results = [];
+    const log = await WebhookLog.create({
+      provider: "casso",
+      headers,
+      body: payload,
+      signatureStatus,
+      processingStatus: "pending",
+    });
 
-    for (const tx of transactions) {
-      const result = await this.processTransaction(tx, webhookEvent);
-      results.push(result);
+    try {
+      for (const tx of transactions) {
+        const result = await this.processTransaction(tx);
+        results.push(result);
+      }
+
+      // Update log with results
+      log.processingStatus = results.every((r) => r.status === "success")
+        ? "processed"
+        : results.some((r) => r.status === "unmatched")
+        ? "unmatched"
+        : "failed";
+      log.results = results;
+      log.responseTime = Date.now() - startTime;
+      await log.save();
+
+      return { status: "processed", results };
+    } catch (error) {
+      console.error("Webhook processing error:", error);
+      log.processingStatus = "failed";
+      log.error = error.message;
+      log.responseTime = Date.now() - startTime;
+      await log.save();
+      throw error;
     }
-
-    // 5. Mark webhook as processed
-    const successTx = results.find((r) => r.status === "success");
-    await webhookEvent.markProcessed(
-      successTx?.transactionId || null,
-      results.every((r) => r.status !== "success") ? results[0]?.error : null
-    );
-
-    return { status: "processed", results };
   }
 
   // Process single transaction from webhook
-  async processTransaction(tx, webhookEvent) {
+  async processTransaction(tx) {
     const {
       id: txId,
       tid,

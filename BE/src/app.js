@@ -5,6 +5,7 @@ import aiRouter from "./routes/ai.routes.js";
 import conversationRouter from "./routes/conversation.routes.js";
 import authRouter from "./routes/auth.routes.js";
 import paymentRouter from "./routes/payment.routes.js";
+import adminRouter from "./routes/admin.routes.js";
 import { generalLimiter } from "./middlewares/rateLimiter.middleware.js";
 
 const app = express();
@@ -47,6 +48,7 @@ app.use("/api/v1/conversations", conversationRouter);
 // New routes for auth and payment
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/payments", paymentRouter);
+app.use("/api/v1/admin", adminRouter);
 
 // Health check
 app.get("/api/health", (req, res) => {

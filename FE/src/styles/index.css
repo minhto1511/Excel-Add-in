@@ -1304,3 +1304,148 @@ button.btn-primary:hover {
   color: var(--warning-text);
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   18. ADMIN DASHBOARD STYLES
+   ═══════════════════════════════════════════════════════════════════ */
+
+.admin-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: white;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--bg-primary);
+}
+
+.admin-header {
+  padding: 12px 20px;
+  background-color: white;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-tabs {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.admin-tabs [role="tablist"] {
+  width: 180px;
+  background-color: white;
+  border-right: 1px solid var(--border-color);
+  padding: 12px 0;
+}
+
+.admin-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background-color: var(--bg-primary);
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.stat-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--border-color) !important;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Table Controls */
+.table-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  background-color: white;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.table-scroll-container {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  overflow: auto;
+}
+
+.admin-alert-banner {
+  background-color: var(--error-bg);
+  color: var(--error-text);
+  padding: 12px 20px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  border: 1px solid var(--error-border);
+}
+
+/* Webhook Logs Styles */
+.logs-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.log-detail {
+  padding: 16px;
+  background-color: var(--bg-primary);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.code-block {
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  padding: 12px;
+  border-radius: 4px;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.log-block.error {
+  border-left: 4px solid var(--error-text);
+  padding-left: 12px;
+}
+
+.admin-overlay .admin-container.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.user-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}

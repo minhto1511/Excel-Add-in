@@ -498,6 +498,63 @@ export function getApiKeyMasked() {
 }
 
 // ============================================================================
+// ADMIN APIs
+// ============================================================================
+
+/**
+ * Lấy thống kê admin
+ */
+export async function getAdminStats() {
+  return apiCall("/admin/stats");
+}
+
+/**
+ * Lấy danh sách giao dịch admin
+ */
+export async function getAdminTransactions(page = 1, limit = 20, search = "", status = "") {
+  let url = `/admin/transactions?page=${page}&limit=${limit}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+  if (status) url += `&status=${status}`;
+  return apiCall(url);
+}
+
+/**
+ * Lấy danh sách giao dịch chưa khớp
+ */
+export async function getAdminUnmatchedTransactions(limit = 50) {
+  return apiCall(`/admin/transactions/unmatched?limit=${limit}`);
+}
+
+/**
+ * Khớp giao dịch thủ công
+ */
+export async function manualMatchTransaction(transactionId, intentId) {
+  return apiCall("/admin/transactions/manual-match", {
+    method: "POST",
+    body: JSON.stringify({ transactionId, intentId }),
+  });
+}
+
+/**
+ * Lấy danh sách người dùng admin
+ */
+export async function getAdminUsers(page = 1, limit = 20, search = "", plan = "") {
+  let url = `/admin/users?page=${page}&limit=${limit}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+  if (plan) url += `&plan=${plan}`;
+  return apiCall(url);
+}
+
+/**
+ * Lấy logs webhook
+ */
+export async function getWebhookLogs(page = 1, limit = 50, status = "") {
+  let url = `/admin/webhook-logs?page=${page}&limit=${limit}`;
+  if (status) url += `&status=${status}`;
+  return apiCall(url);
+}
+
+// ============================================================================
 // EXPORT
 // ============================================================================
 
@@ -529,4 +586,12 @@ export default {
   saveApiKey,
   clearApiKey,
   getApiKeyMasked,
+
+  // Admin
+  getAdminStats,
+  getAdminTransactions,
+  getAdminUnmatchedTransactions,
+  manualMatchTransaction,
+  getAdminUsers,
+  getWebhookLogs,
 };

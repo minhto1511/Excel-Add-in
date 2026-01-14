@@ -28,6 +28,7 @@ import {
   Person24Regular,
   History24Regular,
   Star24Regular,
+  Settings24Regular,
 } from "@fluentui/react-icons";
 
 // Components
@@ -38,6 +39,7 @@ import DataAnalyzer from "./DataAnalyzer";
 import AuthPage from "./AuthPage";
 import History from "./History";
 import UpgradePro from "./UpgradePro";
+import AdminDashboard from "./admin/AdminDashboard";
 
 // API Service
 import { isLoggedIn, getProfile, getCredits, logout } from "../../services/apiService";
@@ -50,6 +52,7 @@ const App = (props) => {
   const [user, setUser] = useState(null);
   const [credits, setCredits] = useState(null);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [isAdminViewOpen, setIsAdminViewOpen] = useState(false);
 
   // Check authentication on mount
   useEffect(() => {
@@ -143,19 +146,23 @@ const App = (props) => {
           <Text weight="semibold">{user?.name || "User"}</Text>
         </div>
         <div className="credits-info">
-          {credits?.plan === "pro" ? (
+          {credits?.plan === "pro" || user?.role === "admin" ? (
             <Text
               className="credits-badge credits-badge--pro"
               title={
                 credits?.endDate
                   ? `Hết hạn: ${new Date(credits.endDate).toLocaleDateString("vi-VN")}`
-                  : ""
+                  : user?.role === "admin"
+                    ? "Quyền Admin vô hạn"
+                    : ""
               }
             >
               PRO{" "}
-              {credits?.endDate
-                ? `đến ${new Date(credits.endDate).toLocaleDateString("vi-VN")}`
-                : "∞"}
+              {user?.role === "admin"
+                ? "∞"
+                : credits?.endDate
+                  ? `đến ${new Date(credits.endDate).toLocaleDateString("vi-VN")}`
+                  : "∞"}
             </Text>
           ) : (
             <Button
@@ -169,13 +176,32 @@ const App = (props) => {
             </Button>
           )}
         </div>
-        <Button appearance="subtle" icon={<SignOut24Regular />} onClick={handleLogout} size="small">
-          Đăng xuất
-        </Button>
+        <div className="user-actions">
+          {user?.role === "admin" && (
+            <Button
+              appearance="subtle"
+              icon={<Settings24Regular />}
+              onClick={() => setIsAdminViewOpen(true)}
+              title="Quản trị hệ thống"
+            />
+          )}
+          <Button
+            appearance="subtle"
+            icon={<SignOut24Regular />}
+            onClick={handleLogout}
+            title="Đăng xuất"
+          />
+        </div>
       </div>
 
+      {isAdminViewOpen && (
+        <div className="admin-overlay">
+          <AdminDashboard onClose={() => setIsAdminViewOpen(false)} />
+        </div>
+      )}
+
       {/* No Credits Warning with Upgrade Button */}
-      {credits?.plan !== "pro" && credits?.credits <= 0 && (
+      {user?.role !== "admin" && credits?.plan !== "pro" && credits?.credits <= 0 && (
         <div className="upgrade-banner">
           <Text className="upgrade-banner__text">⚠️ Bạn đã hết lượt sử dụng miễn phí!</Text>
           <Button
@@ -211,19 +237,19 @@ const App = (props) => {
       <div className="content-container">
         {selectedTab === "formula" && (
           <FormulaGenerator
-            disabled={credits?.plan !== "pro" && credits?.credits <= 0}
+            disabled={user?.role !== "admin" && credits?.plan !== "pro" && credits?.credits <= 0}
             onRequestComplete={refreshCredits}
           />
         )}
         {selectedTab === "analyzer" && (
           <DataAnalyzer
-            disabled={credits?.plan !== "pro" && credits?.credits <= 0}
+            disabled={user?.role !== "admin" && credits?.plan !== "pro" && credits?.credits <= 0}
             onRequestComplete={refreshCredits}
           />
         )}
         {selectedTab === "stepbystep" && (
           <StepByStepGuide
-            disabled={credits?.plan !== "pro" && credits?.credits <= 0}
+            disabled={user?.role !== "admin" && credits?.plan !== "pro" && credits?.credits <= 0}
             onRequestComplete={refreshCredits}
           />
         )}
