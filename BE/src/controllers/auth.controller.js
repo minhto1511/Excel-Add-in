@@ -394,16 +394,6 @@ export const login = async (req, res) => {
       });
     }
 
-    // Check email verified
-    if (!user.isEmailVerified) {
-      return res.status(403).json({
-        error: "EMAIL_NOT_VERIFIED",
-        message: "Email chưa được xác thực. Vui lòng kiểm tra hộp thư",
-        needsVerification: true,
-        email: user.email,
-      });
-    }
-
     // Check account status
     if (user.accountStatus === "suspended") {
       return res.status(403).json({

@@ -144,7 +144,19 @@ const App = (props) => {
         </div>
         <div className="credits-info">
           {credits?.plan === "pro" ? (
-            <Text className="credits-badge credits-badge--pro">PRO ∞</Text>
+            <Text
+              className="credits-badge credits-badge--pro"
+              title={
+                credits?.endDate
+                  ? `Hết hạn: ${new Date(credits.endDate).toLocaleDateString("vi-VN")}`
+                  : ""
+              }
+            >
+              PRO{" "}
+              {credits?.endDate
+                ? `đến ${new Date(credits.endDate).toLocaleDateString("vi-VN")}`
+                : "∞"}
+            </Text>
           ) : (
             <Button
               appearance="subtle"

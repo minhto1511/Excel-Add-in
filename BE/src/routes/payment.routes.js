@@ -16,7 +16,11 @@ const router = Router();
 
 // ==================== PUBLIC ROUTES (Webhooks) ====================
 
-// Casso webhook (bank transfer notification)
+// Casso Webhook V2 (bank transfer notification)
+// Format theo tài liệu Casso: /api/webhook-event-handler
+router.post("/webhook-event-handler", handleCassoWebhook);
+
+// Casso webhook (alternative path)
 router.post("/webhook/casso", handleCassoWebhook);
 
 // VNPay webhook (placeholder)

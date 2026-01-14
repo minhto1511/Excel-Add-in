@@ -65,6 +65,14 @@ export const createPaymentIntent = async (req, res) => {
       });
     }
 
+    if (error.message === "TOO_MANY_PENDING_INTENTS") {
+      return res.status(429).json({
+        error: "TOO_MANY_PENDING_INTENTS",
+        message:
+          "Bạn có quá nhiều yêu cầu thanh toán đang chờ. Vui lòng thanh toán hoặc đợi hết hạn trước khi tạo yêu cầu mới (tối đa 5 yêu cầu)",
+      });
+    }
+
     res.status(500).json({
       error: "INTERNAL_ERROR",
       message: "Lỗi tạo yêu cầu thanh toán",
@@ -176,8 +184,9 @@ export const getPricing = async (req, res) => {
 export const handleCassoWebhook = async (req, res) => {
   try {
     const payload = req.body;
+    // V2 uses X-Casso-Signature, V1 uses secure-token
     const signature =
-      req.headers["secure-token"] || req.headers["x-casso-signature"];
+      req.headers["x-casso-signature"] || req.headers["secure-token"];
 
     console.log(
       "Casso webhook received:",

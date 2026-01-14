@@ -13,7 +13,6 @@ const webhookEventSchema = new Schema(
       type: String,
       required: true,
       unique: true, // Idempotency
-      index: true,
     },
 
     eventType: {

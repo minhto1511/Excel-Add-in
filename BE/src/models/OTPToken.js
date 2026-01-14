@@ -51,7 +51,6 @@ const otpTokenSchema = new Schema(
       type: Date,
       required: true,
       default: () => new Date(Date.now() + 10 * 60 * 1000), // 10 min
-      index: true,
     },
 
     consumedAt: {

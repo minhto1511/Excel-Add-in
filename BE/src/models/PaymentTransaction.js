@@ -13,7 +13,6 @@ const paymentTransactionSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "PaymentIntent",
       default: null,
-      index: true,
     },
 
     userId: {

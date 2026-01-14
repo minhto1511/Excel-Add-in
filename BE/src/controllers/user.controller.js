@@ -145,6 +145,8 @@ const getCredits = async (req, res) => {
       credits: user.subscription.credits,
       hasCredits:
         user.subscription.plan === "pro" || user.subscription.credits > 0,
+      startDate: user.subscription.startDate,
+      endDate: user.subscription.endDate,
       nextBillingDate: user.subscription.nextBillingDate,
     });
   } catch (error) {

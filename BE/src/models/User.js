@@ -9,7 +9,6 @@ const userSchema = new Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      index: true,
     },
 
     password: {
@@ -39,14 +38,12 @@ const userSchema = new Schema(
     isEmailVerified: {
       type: Boolean,
       default: false,
-      index: true,
     },
 
     accountStatus: {
       type: String,
       enum: ["pending", "active", "locked", "suspended"],
       default: "pending", // pending until email verified
-      index: true,
     },
 
     // Security tracking

@@ -68,8 +68,7 @@ const paymentIntentSchema = new Schema(
     expiresAt: {
       type: Date,
       required: true,
-      default: () => new Date(Date.now() + 15 * 60 * 1000), // 15 min
-      index: true,
+      default: () => new Date(Date.now() + 5 * 60 * 1000), // 5 min
     },
 
     paidAt: Date,
@@ -169,10 +168,15 @@ paymentIntentSchema.statics.createIntent = async function (
 // Static: Parse transfer code from description
 paymentIntentSchema.statics.parseTransferCode = function (description) {
   if (!description) return null;
-  // Regex: EOAI-XXXXXX (6 alphanumeric)
-  const regex = /EOAI-[A-Z0-9]{6}/i;
+  // Regex: Matches EOAI-XXXXXX or EOAIXXXXXX (with or without dash)
+  // Captures the 6 alphanumeric characters after EOAI
+  const regex = /EOAI-?([A-Z0-9]{6})/i;
   const match = description.match(regex);
-  return match ? match[0].toUpperCase() : null;
+  if (match) {
+    // Normalize to standard format: EOAI-XXXXXX
+    return `EOAI-${match[1].toUpperCase()}`;
+  }
+  return null;
 };
 
 // Static: Get plan pricing
