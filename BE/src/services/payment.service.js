@@ -440,20 +440,24 @@ class PaymentService {
     // Upgrade user
     await this.upgradeUser(intent.userId, intent.plan, intent._id);
 
-    // Send confirmation email
-    try {
-      const user = await User.findById(intent.userId);
-      if (user) {
-        await emailService.sendPaymentConfirmation(
-          user.email,
-          intent.plan,
-          intent.amount,
-          intent.transferCode
-        );
+    // Send confirmation email (fire-and-forget, don't block webhook response)
+    // Using setImmediate to not block the response
+    setImmediate(async () => {
+      try {
+        const user = await User.findById(intent.userId);
+        if (user) {
+          await emailService.sendPaymentConfirmation(
+            user.email,
+            intent.plan,
+            intent.amount,
+            intent.transferCode
+          );
+          console.log("Confirmation email sent to:", user.email);
+        }
+      } catch (emailError) {
+        console.error("Failed to send confirmation email:", emailError);
       }
-    } catch (emailError) {
-      console.error("Failed to send confirmation email:", emailError);
-    }
+    });
 
     console.log("Payment successful:", transferCode, "user:", intent.userId);
 
