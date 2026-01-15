@@ -15,7 +15,7 @@ class EmailService {
       return;
     }
 
-    const key = process.env.SENDGRID_API_KEY.trim();
+    const key = process.env.SENDGRID_API_KEY.trim().replace(/^=/, "");
 
     // Debug log an toàn (không lộ toàn bộ key)
     console.log("SENDGRID_API_KEY length:", key.length);
