@@ -115,7 +115,8 @@ class PaymentService {
   }
 
   // Verify Casso webhook signature (supports V2 format: t=timestamp,v1=signature)
-  verifyCassoSignature(payload, signatureHeader) {
+  // IMPORTANT: rawBody must be the original request body string (not JSON.stringify of parsed object)
+  verifyCassoSignature(rawBody, signatureHeader) {
     const secret = process.env.CASSO_WEBHOOK_SECRET;
 
     // Option to skip signature verification (for testing in production)
@@ -158,46 +159,62 @@ class PaymentService {
           return false;
         }
 
-        // Method 1: HMAC-SHA512(secret, timestamp + "." + JSON.stringify(payload))
-        const signedPayload1 = `${timestamp}.${JSON.stringify(payload)}`;
+        // Method 1: HMAC-SHA256 with timestamp.rawBody (Casso V2 standard)
+        const signedPayload1 = `${timestamp}.${rawBody}`;
         const computed1 = crypto
-          .createHmac("sha512", secret)
+          .createHmac("sha256", secret)
           .update(signedPayload1)
           .digest("hex");
 
         if (computed1 === signature) {
-          console.log("Signature verified (method 1)");
+          console.log("Signature verified (method 1 - SHA256 timestamp.body)");
           return true;
         }
 
-        // Method 2: HMAC-SHA256 (some Casso versions use SHA256)
+        // Method 2: HMAC-SHA512 with timestamp.rawBody
         const computed2 = crypto
-          .createHmac("sha256", secret)
+          .createHmac("sha512", secret)
           .update(signedPayload1)
           .digest("hex");
 
         if (computed2 === signature) {
-          console.log("Signature verified (method 2 - SHA256)");
+          console.log("Signature verified (method 2 - SHA512)");
           return true;
         }
 
-        // Method 3: Just the body without timestamp
+        // Method 3: Just the rawBody without timestamp (SHA256)
         const computed3 = crypto
           .createHmac("sha256", secret)
-          .update(JSON.stringify(payload))
+          .update(rawBody)
           .digest("hex");
 
         if (computed3 === signature) {
-          console.log("Signature verified (method 3 - body only)");
+          console.log("Signature verified (method 3 - body only SHA256)");
           return true;
         }
 
+        // Method 4: Just the rawBody without timestamp (SHA512)
+        const computed4 = crypto
+          .createHmac("sha512", secret)
+          .update(rawBody)
+          .digest("hex");
+
+        if (computed4 === signature) {
+          console.log("Signature verified (method 4 - body only SHA512)");
+          return true;
+        }
+
+        console.error("Signature mismatch.");
+        console.error("Received:", signature.substring(0, 30) + "...");
         console.error(
-          "Signature mismatch. Received:",
-          signature.substring(0, 20) + "..."
+          "Computed (m1 SHA256):",
+          computed1.substring(0, 30) + "..."
         );
-        console.error("Expected (m1):", computed1.substring(0, 20) + "...");
-        console.error("Expected (m2):", computed2.substring(0, 20) + "...");
+        console.error(
+          "Computed (m2 SHA512):",
+          computed2.substring(0, 30) + "..."
+        );
+        console.error("RawBody preview:", rawBody.substring(0, 100) + "...");
         return false;
       }
 
@@ -214,7 +231,7 @@ class PaymentService {
   }
 
   // Process Casso webhook
-  async processCassoWebhook(payload, signature, headers = {}) {
+  async processCassoWebhook(payload, rawBody, signature, headers = {}) {
     // 1. Extract event ID for idempotency
     const eventId =
       payload.id?.toString() ||
@@ -224,8 +241,8 @@ class PaymentService {
     const startTime = Date.now();
     let signatureStatus = "skipped"; // Default to skipped if no secret or dev mode
 
-    // 1. Verify signature
-    const signatureValid = this.verifyCassoSignature(payload, signature);
+    // 1. Verify signature using rawBody (not parsed payload)
+    const signatureValid = this.verifyCassoSignature(rawBody, signature);
 
     if (!signatureValid && process.env.CASSO_WEBHOOK_SECRET) {
       signatureStatus = "invalid";

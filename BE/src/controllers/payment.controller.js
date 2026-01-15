@@ -184,18 +184,27 @@ export const getPricing = async (req, res) => {
 export const handleCassoWebhook = async (req, res) => {
   try {
     const payload = req.body;
+    const rawBody = req.rawBody; // Captured by express.json verify option
+
     // V2 uses X-Casso-Signature, V1 uses secure-token
     const signature =
       req.headers["x-casso-signature"] || req.headers["secure-token"];
 
+    console.log("Casso webhook received:");
     console.log(
-      "Casso webhook received:",
-      JSON.stringify(payload).substring(0, 500)
+      "- Signature header:",
+      signature ? signature.substring(0, 50) + "..." : "none"
+    );
+    console.log("- RawBody length:", rawBody ? rawBody.length : 0);
+    console.log(
+      "- Payload preview:",
+      JSON.stringify(payload).substring(0, 200)
     );
 
-    // Process webhook
+    // Process webhook with rawBody for signature verification
     const result = await paymentService.processCassoWebhook(
       payload,
+      rawBody,
       signature,
       req.headers
     );

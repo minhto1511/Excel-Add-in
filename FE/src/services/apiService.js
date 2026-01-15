@@ -18,8 +18,8 @@ import { getExcelContext as getExcelContextFromService } from "./excelContextSer
 // API CONFIGURATION
 // ============================================================================
 
-// Backend API URL - Port 3001 (Tránh trùng với port 3000 của Frontend Dev Server)
-const API_BASE_URL = "http://localhost:3001/api/v1";
+// Backend API URL - Production
+const API_BASE_URL = "https://excel-add-in-production-141f.up.railway.app/api/v1";
 
 /**
  * Lấy JWT token từ localStorage

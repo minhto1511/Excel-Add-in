@@ -10,7 +10,7 @@ import { generalLimiter } from "./middlewares/rateLimiter.middleware.js";
 
 const app = express();
 
-// CORS Configuration - Cho phép Excel Add-in gọi API
+// CORS Configuration - Cho phép Excel Add-in và Production URL gọi API
 app.use(
   cors({
     origin: [
@@ -21,7 +21,9 @@ app.use(
       "https://localhost:4001",
       "http://localhost:4001",
       "null", // Excel taskpane origin
-    ],
+      // Production URLs
+      process.env.ALLOWED_ORIGINS,
+    ].filter(Boolean),
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: [
@@ -34,8 +36,15 @@ app.use(
   })
 );
 
-// Middleware parse JSON
-app.use(express.json());
+// Custom JSON parser that preserves raw body for webhook signature verification
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      // Store raw body for webhook signature verification
+      req.rawBody = buf.toString();
+    },
+  })
+);
 
 // General rate limiter
 app.use(generalLimiter);
