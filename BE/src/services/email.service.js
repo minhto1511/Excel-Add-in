@@ -15,7 +15,18 @@ class EmailService {
       return;
     }
 
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    const key = process.env.SENDGRID_API_KEY.trim();
+
+    // Debug log an toàn (không lộ toàn bộ key)
+    console.log("SENDGRID_API_KEY length:", key.length);
+    console.log("SENDGRID_API_KEY prefix:", key.slice(0, 3));
+
+    if (!key.startsWith("SG.")) {
+      console.error("CRITICAL: SENDGRID_API_KEY does not start with 'SG.'");
+      return;
+    }
+
+    sgMail.setApiKey(key);
 
     // FromEmail must be the verified sender email
     this.fromEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER;
