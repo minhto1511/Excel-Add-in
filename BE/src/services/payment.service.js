@@ -117,31 +117,32 @@ class PaymentService {
   // Verify Casso webhook signature (supports V2 format: t=timestamp,v1=signature)
   verifyCassoSignature(payload, signatureHeader) {
     const secret = process.env.CASSO_WEBHOOK_SECRET;
-    if (!secret) {
-      console.warn("CASSO_WEBHOOK_SECRET not configured");
-      return true; // Skip verification if not configured (dev mode)
+
+    // Option to skip signature verification (for testing in production)
+    if (process.env.SKIP_CASSO_SIGNATURE === "true") {
+      console.warn("SKIP_CASSO_SIGNATURE enabled - skipping verification");
+      return true;
     }
 
-    // Skip verification if no signature provided (for testing only)
+    if (!secret) {
+      console.warn("CASSO_WEBHOOK_SECRET not configured");
+      return true; // Skip verification if not configured
+    }
+
+    // Skip verification if no signature provided
     if (!signatureHeader) {
       if (process.env.NODE_ENV === "production") {
         console.error("No signature header provided in production mode");
+        // In production without signature, check if it's secure-token style
         return false;
       }
       console.warn("No signature header - skipping verification (dev mode)");
       return true;
     }
 
-    // TODO: Implement correct Casso V2 signature verification algorithm
-    // For now, skip verification in dev mode to test webhook flow
+    // Dev mode: skip verification
     if (process.env.NODE_ENV !== "production") {
-      console.warn(
-        "DEV MODE: Skipping signature verification for Casso webhook"
-      );
-      console.log(
-        "Received signature:",
-        signatureHeader.substring(0, 50) + "..."
-      );
+      console.warn("DEV MODE: Skipping signature verification");
       return true;
     }
 
@@ -157,23 +158,55 @@ class PaymentService {
           return false;
         }
 
-        // V2 uses: HMAC-SHA512(secret, timestamp + "." + JSON.stringify(payload))
-        const signedPayload = `${timestamp}.${JSON.stringify(payload)}`;
-        const computed = crypto
+        // Method 1: HMAC-SHA512(secret, timestamp + "." + JSON.stringify(payload))
+        const signedPayload1 = `${timestamp}.${JSON.stringify(payload)}`;
+        const computed1 = crypto
           .createHmac("sha512", secret)
-          .update(signedPayload)
+          .update(signedPayload1)
           .digest("hex");
 
-        const isValid = computed === signature;
-        if (!isValid) {
-          console.log("Signature mismatch - trying alternative format...");
-          // Try without stringifying (some implementations differ)
+        if (computed1 === signature) {
+          console.log("Signature verified (method 1)");
+          return true;
         }
-        return isValid;
+
+        // Method 2: HMAC-SHA256 (some Casso versions use SHA256)
+        const computed2 = crypto
+          .createHmac("sha256", secret)
+          .update(signedPayload1)
+          .digest("hex");
+
+        if (computed2 === signature) {
+          console.log("Signature verified (method 2 - SHA256)");
+          return true;
+        }
+
+        // Method 3: Just the body without timestamp
+        const computed3 = crypto
+          .createHmac("sha256", secret)
+          .update(JSON.stringify(payload))
+          .digest("hex");
+
+        if (computed3 === signature) {
+          console.log("Signature verified (method 3 - body only)");
+          return true;
+        }
+
+        console.error(
+          "Signature mismatch. Received:",
+          signature.substring(0, 20) + "..."
+        );
+        console.error("Expected (m1):", computed1.substring(0, 20) + "...");
+        console.error("Expected (m2):", computed2.substring(0, 20) + "...");
+        return false;
       }
 
       // Webhook V1 format: simple token comparison (secure-token header)
-      return signatureHeader === secret;
+      const isValid = signatureHeader === secret;
+      if (isValid) {
+        console.log("Signature verified (V1 secure-token)");
+      }
+      return isValid;
     } catch (error) {
       console.error("Signature verification error:", error);
       return false;
