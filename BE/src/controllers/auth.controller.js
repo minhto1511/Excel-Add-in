@@ -119,7 +119,10 @@ export const register = async (req, res) => {
       clientInfo
     );
 
-    await emailService.sendOTP(email, otp, "signup");
+    // Send OTP email async (fire-and-forget) to not block response
+    emailService.sendOTP(email, otp, "signup").catch((err) => {
+      console.error("Failed to send signup OTP email:", err);
+    });
 
     // Audit log
     await AuditLog.log("signup", {
@@ -328,7 +331,10 @@ export const resendOTP = async (req, res) => {
       clientInfo
     );
 
-    await emailService.sendOTP(email, otp, purpose);
+    // Send OTP email async (fire-and-forget)
+    emailService.sendOTP(email, otp, purpose).catch((err) => {
+      console.error("Failed to send resend OTP email:", err);
+    });
 
     // Audit log
     await AuditLog.log("otp_sent", {
@@ -555,7 +561,10 @@ export const forgotPassword = async (req, res) => {
       clientInfo
     );
 
-    await emailService.sendOTP(email, otp, "reset_password");
+    // Send OTP email async (fire-and-forget)
+    emailService.sendOTP(email, otp, "reset_password").catch((err) => {
+      console.error("Failed to send reset password OTP email:", err);
+    });
 
     // Audit log
     await AuditLog.log("password_reset_requested", {
