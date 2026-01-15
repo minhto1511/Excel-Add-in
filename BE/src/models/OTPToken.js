@@ -131,7 +131,7 @@ otpTokenSchema.statics.checkRateLimit = async function (email, purpose) {
     purpose,
     createdAt: { $gt: oneHourAgo },
   });
-  return count < 3; // Max 3 OTPs per hour
+  return count < 10; // Max 10 OTPs per hour (increased for easier testing)
 };
 
 // Instance: Verify OTP
