@@ -128,22 +128,40 @@ const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
     (intentId) => {
       if (pollingRef.current) clearInterval(pollingRef.current);
 
+      let pollCount = 0;
+      const maxPolls = 120; // 120 * 3s = 6 minutes max polling time
+
       pollingRef.current = setInterval(async () => {
         try {
-          console.log("Polling intent status:", intentId);
+          pollCount++;
+          console.log(`[Polling ${pollCount}/${maxPolls}] Checking intent:`, intentId);
+
           const statusData = await getPaymentIntentStatus(intentId);
-          console.log("Status received:", statusData.status);
+          console.log(`[Polling ${pollCount}] Status:`, statusData.status);
 
           if (statusData.status === "paid") {
+            console.log("[Polling] Payment confirmed! Calling onUpgradeSuccess...");
             clearInterval(pollingRef.current);
             setStatus("paid");
-            setTimeout(() => onUpgradeSuccess?.(), 2000);
+            // Give user time to see success message, then callback
+            setTimeout(() => {
+              console.log("[Polling] Triggering upgrade success callback");
+              onUpgradeSuccess?.();
+            }, 2000);
           } else if (statusData.status === "expired") {
+            console.log("[Polling] Payment expired");
             clearInterval(pollingRef.current);
             setStatus("expired");
           }
+
+          // Stop polling after max attempts
+          if (pollCount >= maxPolls) {
+            console.log("[Polling] Max attempts reached, stopping");
+            clearInterval(pollingRef.current);
+            setError("Hết thời gian chờ. Nếu đã thanh toán, vui lòng refresh trang.");
+          }
         } catch (err) {
-          console.error("Polling error:", err);
+          console.error("[Polling] Error:", err);
           // Nếu lỗi 401 (token expired), dừng polling và thông báo
           if (err.message?.includes("hết hạn") || err.message?.includes("401")) {
             clearInterval(pollingRef.current);
@@ -153,7 +171,7 @@ const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
             setStatus("error");
           }
         }
-      }, 3000); // Polling mỗi 3 giây thay vì 5
+      }, 3000); // Polling mỗi 3 giây
     },
     [onUpgradeSuccess]
   );
