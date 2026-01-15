@@ -142,6 +142,11 @@ class EmailService {
       html: template.html,
     };
 
+    console.log(`[SendGrid] Attempting to send email:
+- From: ${this.fromEmail}
+- To: ${email}
+- Subject: ${template.subject}`);
+
     try {
       const response = await sgMail.send(msg);
       console.log("Email sent via SendGrid:", response[0].statusCode);
@@ -219,6 +224,11 @@ class EmailService {
         </div>
       `,
     };
+
+    console.log(`[SendGrid] Attempting to send Payment Confirmation:
+- From: ${this.fromEmail}
+- To: ${email}
+- Subject: ✅ Thanh toán thành công - eOfficeAI`);
 
     try {
       await sgMail.send(msg);
