@@ -10,6 +10,9 @@ import { generalLimiter } from "./middlewares/rateLimiter.middleware.js";
 
 const app = express();
 
+// Trust proxy - Quan trọng khi chạy trên Railway/Vercel sau load balancer
+app.set("trust proxy", 1);
+
 // CORS Configuration - Cho phép Excel Add-in và Production URL gọi API
 app.use(
   cors({
