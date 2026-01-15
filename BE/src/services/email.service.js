@@ -1,30 +1,35 @@
-import { Resend } from "resend";
+import sgMail from "@sendgrid/mail";
 
 class EmailService {
   constructor() {
-    this.resend = null;
     this.initialized = false;
-    this.fromEmail = "noreply@eofficeai.com"; // Will use Resend's default if domain not verified
+    this.fromEmail = null;
   }
 
-  // Initialize Resend client (lazy initialization)
+  // Initialize SendGrid client
   initialize() {
     if (this.initialized) return;
 
-    // Check for required env vars
-    if (!process.env.RESEND_API_KEY) {
-      console.warn("Email service not configured: RESEND_API_KEY missing");
+    if (!process.env.SENDGRID_API_KEY) {
+      console.warn("Email service not configured: SENDGRID_API_KEY missing");
       return;
     }
 
-    this.resend = new Resend(process.env.RESEND_API_KEY);
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-    // Use custom from email if domain is verified, otherwise use Resend's default
-    this.fromEmail =
-      process.env.EMAIL_FROM || "eOfficeAI <onboarding@resend.dev>";
+    // FromEmail must be the verified sender email
+    this.fromEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+
+    if (!this.fromEmail) {
+      console.warn("EMAIL_FROM not set, emails will fail");
+      return;
+    }
 
     this.initialized = true;
-    console.log("Email service initialized with Resend");
+    console.log(
+      "Email service initialized with SendGrid, from:",
+      this.fromEmail
+    );
   }
 
   // Get email templates
@@ -90,7 +95,7 @@ class EmailService {
               
               <div style="background: #fef7e0; border-left: 4px solid #fbbc04; padding: 15px; border-radius: 4px; margin-top: 20px;">
                 <p style="color: #5f6368; margin: 0; font-size: 13px;">
-                  ⚠️ Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này và đổi mật khẩu ngay để bảo vệ tài khoản.
+                  ⚠️ Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.
                 </p>
               </div>
             </div>
@@ -110,30 +115,31 @@ class EmailService {
   async sendOTP(email, otp, purpose) {
     this.initialize();
 
-    if (!this.resend) {
-      console.error("Email service not configured - RESEND_API_KEY missing");
+    if (!this.fromEmail) {
+      console.error(
+        "Email service not configured - missing SENDGRID_API_KEY or EMAIL_FROM"
+      );
       throw new Error("EMAIL_SERVICE_NOT_CONFIGURED");
     }
 
     const template = this.getTemplate(purpose, otp);
 
+    const msg = {
+      to: email,
+      from: this.fromEmail,
+      subject: template.subject,
+      html: template.html,
+    };
+
     try {
-      const { data, error } = await this.resend.emails.send({
-        from: this.fromEmail,
-        to: email,
-        subject: template.subject,
-        html: template.html,
-      });
-
-      if (error) {
-        console.error("Resend API error:", error);
-        throw new Error("EMAIL_SEND_FAILED");
-      }
-
-      console.log("Email sent via Resend:", data.id);
-      return { success: true, messageId: data.id };
+      const response = await sgMail.send(msg);
+      console.log("Email sent via SendGrid:", response[0].statusCode);
+      return { success: true, statusCode: response[0].statusCode };
     } catch (error) {
-      console.error("Email send error:", error);
+      console.error("SendGrid error:", error);
+      if (error.response) {
+        console.error("SendGrid error body:", error.response.body);
+      }
       throw new Error("EMAIL_SEND_FAILED");
     }
   }
@@ -142,7 +148,7 @@ class EmailService {
   async sendPaymentConfirmation(email, plan, amount, transactionId) {
     this.initialize();
 
-    if (!this.resend) {
+    if (!this.fromEmail) {
       console.error("Email service not configured");
       return;
     }
@@ -154,62 +160,58 @@ class EmailService {
       credits_100: "Gói 100 Credits",
     };
 
-    try {
-      const { data, error } = await this.resend.emails.send({
-        from: this.fromEmail,
-        to: email,
-        subject: "✅ Thanh toán thành công - eOfficeAI",
-        html: `
-          <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f9fafb; border-radius: 12px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #1a73e8; margin: 0;">eOfficeAI</h1>
-            </div>
-            
-            <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-              <div style="text-align: center; margin-bottom: 20px;">
-                <span style="font-size: 48px;">✅</span>
-                <h2 style="color: #34a853; margin: 10px 0;">Thanh toán thành công!</h2>
-              </div>
-              
-              <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
-                <table style="width: 100%; border-collapse: collapse;">
-                  <tr>
-                    <td style="padding: 10px 0; color: #5f6368;">Gói:</td>
-                    <td style="padding: 10px 0; text-align: right; font-weight: bold; color: #202124;">${
-                      planNames[plan] || plan
-                    }</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 10px 0; color: #5f6368;">Số tiền:</td>
-                    <td style="padding: 10px 0; text-align: right; font-weight: bold; color: #202124;">${amount.toLocaleString(
-                      "vi-VN"
-                    )} VND</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 10px 0; color: #5f6368;">Mã giao dịch:</td>
-                    <td style="padding: 10px 0; text-align: right; font-family: monospace; color: #202124;">${transactionId}</td>
-                  </tr>
-                </table>
-              </div>
-              
-              <p style="color: #5f6368; margin-top: 20px; text-align: center;">
-                Tài khoản của bạn đã được nâng cấp. Cảm ơn bạn đã sử dụng eOfficeAI!
-              </p>
-            </div>
-            
-            <div style="text-align: center; margin-top: 25px; color: #9aa0a6; font-size: 12px;">
-              <p>© 2026 eOfficeAI. All rights reserved.</p>
-            </div>
+    const msg = {
+      to: email,
+      from: this.fromEmail,
+      subject: "✅ Thanh toán thành công - eOfficeAI",
+      html: `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f9fafb; border-radius: 12px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #1a73e8; margin: 0;">eOfficeAI</h1>
           </div>
-        `,
-      });
+          
+          <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <span style="font-size: 48px;">✅</span>
+              <h2 style="color: #34a853; margin: 10px 0;">Thanh toán thành công!</h2>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 10px 0; color: #5f6368;">Gói:</td>
+                  <td style="padding: 10px 0; text-align: right; font-weight: bold; color: #202124;">${
+                    planNames[plan] || plan
+                  }</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; color: #5f6368;">Số tiền:</td>
+                  <td style="padding: 10px 0; text-align: right; font-weight: bold; color: #202124;">${amount.toLocaleString(
+                    "vi-VN"
+                  )} VND</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; color: #5f6368;">Mã giao dịch:</td>
+                  <td style="padding: 10px 0; text-align: right; font-family: monospace; color: #202124;">${transactionId}</td>
+                </tr>
+              </table>
+            </div>
+            
+            <p style="color: #5f6368; margin-top: 20px; text-align: center;">
+              Tài khoản của bạn đã được nâng cấp. Cảm ơn bạn đã sử dụng eOfficeAI!
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin-top: 25px; color: #9aa0a6; font-size: 12px;">
+            <p>© 2026 eOfficeAI. All rights reserved.</p>
+          </div>
+        </div>
+      `,
+    };
 
-      if (error) {
-        console.error("Payment confirmation email error:", error);
-        return;
-      }
-
-      console.log("Payment confirmation email sent to:", email, "ID:", data.id);
+    try {
+      await sgMail.send(msg);
+      console.log("Payment confirmation email sent to:", email);
     } catch (error) {
       console.error("Payment confirmation email error:", error);
       // Don't throw - this is non-critical
@@ -220,28 +222,27 @@ class EmailService {
   async verifyConnection() {
     this.initialize();
 
-    if (!this.resend) {
+    if (!this.fromEmail) {
       return {
         success: false,
-        error: "RESEND_API_KEY not configured",
+        error: "Email service not configured",
         config: {
-          RESEND_API_KEY: process.env.RESEND_API_KEY ? "✓ Set" : "✗ Missing",
+          SENDGRID_API_KEY: process.env.SENDGRID_API_KEY
+            ? "✓ Set"
+            : "✗ Missing",
+          EMAIL_FROM:
+            process.env.EMAIL_FROM || process.env.EMAIL_USER || "✗ Missing",
         },
       };
     }
 
-    try {
-      // Try to get API key info to verify it works
-      const { data, error } = await this.resend.apiKeys.list();
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
+    return {
+      success: true,
+      config: {
+        SENDGRID_API_KEY: "✓ Set",
+        EMAIL_FROM: this.fromEmail,
+      },
+    };
   }
 }
 
