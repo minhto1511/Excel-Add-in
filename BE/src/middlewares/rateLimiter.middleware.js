@@ -42,10 +42,10 @@ export const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Register limiter: 3 attempts per hour per IP
+// Register limiter: 5 attempts per hour per IP (Increased for testing)
 export const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  limit: 3,
+  limit: 5,
   message: {
     error: "TOO_MANY_REGISTRATIONS",
     message: "Quá nhiều lần đăng ký. Vui lòng thử lại sau 1 giờ",
@@ -54,10 +54,10 @@ export const registerLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// OTP limiter: 3 OTPs per hour per email
+// OTP limiter: 5 OTPs per hour per email (Increased for testing)
 export const otpLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  limit: 3,
+  limit: 5,
   message: {
     error: "OTP_RATE_LIMIT",
     message: "Quá nhiều yêu cầu OTP. Vui lòng thử lại sau 1 giờ",
