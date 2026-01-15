@@ -1,33 +1,30 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 class EmailService {
   constructor() {
-    this.transporter = null;
+    this.resend = null;
     this.initialized = false;
+    this.fromEmail = "noreply@eofficeai.com"; // Will use Resend's default if domain not verified
   }
 
-  // Initialize transporter (lazy initialization)
+  // Initialize Resend client (lazy initialization)
   initialize() {
     if (this.initialized) return;
 
     // Check for required env vars
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-      console.warn(
-        "Email service not configured: EMAIL_USER or EMAIL_PASSWORD missing"
-      );
+    if (!process.env.RESEND_API_KEY) {
+      console.warn("Email service not configured: RESEND_API_KEY missing");
       return;
     }
 
-    this.transporter = nodemailer.createTransport({
-      service: process.env.EMAIL_SERVICE || "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD, // Gmail App Password or SMTP password
-      },
-    });
+    this.resend = new Resend(process.env.RESEND_API_KEY);
+
+    // Use custom from email if domain is verified, otherwise use Resend's default
+    this.fromEmail =
+      process.env.EMAIL_FROM || "eOfficeAI <onboarding@resend.dev>";
 
     this.initialized = true;
-    console.log("Email service initialized");
+    console.log("Email service initialized with Resend");
   }
 
   // Get email templates
@@ -113,23 +110,28 @@ class EmailService {
   async sendOTP(email, otp, purpose) {
     this.initialize();
 
-    if (!this.transporter) {
-      console.error("Email service not configured");
+    if (!this.resend) {
+      console.error("Email service not configured - RESEND_API_KEY missing");
       throw new Error("EMAIL_SERVICE_NOT_CONFIGURED");
     }
 
     const template = this.getTemplate(purpose, otp);
 
     try {
-      const info = await this.transporter.sendMail({
-        from: `"eOfficeAI" <${process.env.EMAIL_USER}>`,
+      const { data, error } = await this.resend.emails.send({
+        from: this.fromEmail,
         to: email,
         subject: template.subject,
         html: template.html,
       });
 
-      console.log("Email sent:", info.messageId);
-      return { success: true, messageId: info.messageId };
+      if (error) {
+        console.error("Resend API error:", error);
+        throw new Error("EMAIL_SEND_FAILED");
+      }
+
+      console.log("Email sent via Resend:", data.id);
+      return { success: true, messageId: data.id };
     } catch (error) {
       console.error("Email send error:", error);
       throw new Error("EMAIL_SEND_FAILED");
@@ -140,7 +142,7 @@ class EmailService {
   async sendPaymentConfirmation(email, plan, amount, transactionId) {
     this.initialize();
 
-    if (!this.transporter) {
+    if (!this.resend) {
       console.error("Email service not configured");
       return;
     }
@@ -153,8 +155,8 @@ class EmailService {
     };
 
     try {
-      await this.transporter.sendMail({
-        from: `"eOfficeAI" <${process.env.EMAIL_USER}>`,
+      const { data, error } = await this.resend.emails.send({
+        from: this.fromEmail,
         to: email,
         subject: "✅ Thanh toán thành công - eOfficeAI",
         html: `
@@ -202,23 +204,40 @@ class EmailService {
         `,
       });
 
-      console.log("Payment confirmation email sent to:", email);
+      if (error) {
+        console.error("Payment confirmation email error:", error);
+        return;
+      }
+
+      console.log("Payment confirmation email sent to:", email, "ID:", data.id);
     } catch (error) {
       console.error("Payment confirmation email error:", error);
       // Don't throw - this is non-critical
     }
   }
 
-  // Verify transporter connection
+  // Verify connection (for testing)
   async verifyConnection() {
     this.initialize();
 
-    if (!this.transporter) {
-      return { success: false, error: "Not configured" };
+    if (!this.resend) {
+      return {
+        success: false,
+        error: "RESEND_API_KEY not configured",
+        config: {
+          RESEND_API_KEY: process.env.RESEND_API_KEY ? "✓ Set" : "✗ Missing",
+        },
+      };
     }
 
     try {
-      await this.transporter.verify();
+      // Try to get API key info to verify it works
+      const { data, error } = await this.resend.apiKeys.list();
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
