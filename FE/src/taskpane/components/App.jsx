@@ -77,8 +77,30 @@ const App = (props) => {
     setIsLoading(false);
   };
 
-  const handleLoginSuccess = async () => {
-    await checkAuth();
+  const handleLoginSuccess = async (userData) => {
+    // ✅ CRITICAL: Update UI state IMMEDIATELY with data from login/verification response
+    if (userData) {
+      setUser(userData);
+      setIsAuthenticated(true);
+      setIsLoading(false);
+    }
+
+    // ✅ Then fetch latest data in background to sync
+    try {
+      const [profileData, creditsData] = await Promise.all([getProfile(), getCredits()]);
+      setUser(profileData);
+      setCredits(creditsData);
+    } catch (error) {
+      console.warn("Failed to fetch latest profile after login:", error);
+      // User data from login response is still valid, so we don't clear auth state
+      // Just fetch credits if possible
+      try {
+        const creditsData = await getCredits();
+        setCredits(creditsData);
+      } catch (creditsError) {
+        console.warn("Failed to fetch credits:", creditsError);
+      }
+    }
   };
 
   const handleLogout = async () => {

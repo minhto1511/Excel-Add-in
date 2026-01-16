@@ -250,7 +250,10 @@ const AuthPage = ({ onLoginSuccess }) => {
       }
 
       setSuccess("Đăng nhập thành công!");
-      setTimeout(() => onLoginSuccess(), 500);
+
+      // ✅ CRITICAL: Gọi ngay với user data để update UI immediately
+      // ❌ REMOVED: setTimeout(() => onLoginSuccess(), 500);
+      onLoginSuccess(result.user);
     } catch (err) {
       setError(err.message || "Đăng nhập thất bại");
     } finally {
@@ -328,10 +331,14 @@ const AuthPage = ({ onLoginSuccess }) => {
 
     try {
       if (otpPurpose === "signup") {
-        await verifyEmailOTP(email, otp);
+        const result = await verifyEmailOTP(email, otp);
+        // ✅ Token đã được lưu trong verifyEmailOTP()
         setSuccess("Xác thực thành công!");
         setShowOTPDialog(false);
-        setTimeout(() => onLoginSuccess(), 500);
+
+        // ✅ CRITICAL: Gọi callback NGAY LẬP TỨC với user data để update UI
+        // ❌ REMOVED: setTimeout(() => onLoginSuccess(), 500);
+        onLoginSuccess(result.user);
       } else {
         // Reset password flow
         const result = await verifyResetOTP(email, otp);

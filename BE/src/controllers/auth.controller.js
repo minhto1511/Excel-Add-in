@@ -119,12 +119,47 @@ export const register = async (req, res) => {
       clientInfo
     );
 
-    // Send OTP email async (fire-and-forget) to not block response
-    emailService.sendOTP(email, otp, "signup").catch((err) => {
-      console.error("Failed to send signup OTP email:", err);
+    // ✅ CRITICAL: Return response IMMEDIATELY - don't block on email
+    res.status(201).json({
+      message: "Đăng ký thành công. Vui lòng kiểm tra email để xác thực.",
+      otpSent: true,
+      email: user.email,
     });
 
-    // Audit log
+    // ✅ Send email AFTER response (fire-and-forget) using setImmediate
+    setImmediate(async () => {
+      try {
+        const emailResult = await emailService.sendOTP(email, otp, "signup");
+        console.log(
+          `[Register] OTP email sent for ${email}:`,
+          emailResult.correlationId
+        );
+
+        // Update audit log with correlation ID for tracing
+        await AuditLog.updateOne(
+          {
+            userId: user._id,
+            action: "otp_sent",
+            createdAt: { $gte: new Date(Date.now() - 5000) }, // Last 5 seconds
+          },
+          {
+            $set: {
+              "metadata.emailCorrelationId": emailResult.correlationId,
+              "metadata.emailDuration": emailResult.duration,
+            },
+          }
+        );
+      } catch (err) {
+        console.error(
+          `[Register] Failed to send signup OTP email for ${email}:`,
+          err.message
+        );
+        // Email failure doesn't block user registration
+        // User can request resend if needed
+      }
+    });
+
+    // Audit log for registration success
     await AuditLog.log("signup", {
       userId: user._id,
       email: user.email,
@@ -137,12 +172,6 @@ export const register = async (req, res) => {
       email: user.email,
       ...clientInfo,
       metadata: { purpose: "signup" },
-    });
-
-    res.status(201).json({
-      message: "Đăng ký thành công. Vui lòng kiểm tra email để xác thực.",
-      otpSent: true,
-      email: user.email,
     });
   } catch (error) {
     console.error("Register error:", error);
@@ -331,9 +360,42 @@ export const resendOTP = async (req, res) => {
       clientInfo
     );
 
-    // Send OTP email async (fire-and-forget)
-    emailService.sendOTP(email, otp, purpose).catch((err) => {
-      console.error("Failed to send resend OTP email:", err);
+    // ✅ Return response IMMEDIATELY
+    res.status(200).json({
+      message: "Đã gửi lại mã OTP",
+      otpSent: true,
+    });
+
+    // ✅ Send email AFTER response (fire-and-forget)
+    setImmediate(async () => {
+      try {
+        const emailResult = await emailService.sendOTP(email, otp, purpose);
+        console.log(
+          `[ResendOTP] Email sent for ${email}:`,
+          emailResult.correlationId
+        );
+
+        // Update audit log with correlation ID
+        await AuditLog.updateOne(
+          {
+            email: email.toLowerCase(),
+            action: "otp_sent",
+            createdAt: { $gte: new Date(Date.now() - 5000) },
+          },
+          {
+            $set: {
+              "metadata.emailCorrelationId": emailResult.correlationId,
+              "metadata.emailDuration": emailResult.duration,
+              "metadata.isResend": true,
+            },
+          }
+        );
+      } catch (err) {
+        console.error(
+          `[ResendOTP] Failed to send email for ${email}:`,
+          err.message
+        );
+      }
     });
 
     // Audit log
@@ -342,11 +404,6 @@ export const resendOTP = async (req, res) => {
       email: email.toLowerCase(),
       ...clientInfo,
       metadata: { purpose, isResend: true },
-    });
-
-    res.status(200).json({
-      message: "Đã gửi lại mã OTP",
-      otpSent: true,
     });
   } catch (error) {
     console.error("Resend OTP error:", error);
@@ -561,9 +618,42 @@ export const forgotPassword = async (req, res) => {
       clientInfo
     );
 
-    // Send OTP email async (fire-and-forget)
-    emailService.sendOTP(email, otp, "reset_password").catch((err) => {
-      console.error("Failed to send reset password OTP email:", err);
+    // ✅ Return response IMMEDIATELY (security: same response even if user not found)
+    res.status(200).json(successResponse);
+
+    // ✅ Send email AFTER response (fire-and-forget)
+    setImmediate(async () => {
+      try {
+        const emailResult = await emailService.sendOTP(
+          email,
+          otp,
+          "reset_password"
+        );
+        console.log(
+          `[ForgotPassword] Email sent for ${email}:`,
+          emailResult.correlationId
+        );
+
+        // Update audit log with correlation ID
+        await AuditLog.updateOne(
+          {
+            userId: user._id,
+            action: "otp_sent",
+            createdAt: { $gte: new Date(Date.now() - 5000) },
+          },
+          {
+            $set: {
+              "metadata.emailCorrelationId": emailResult.correlationId,
+              "metadata.emailDuration": emailResult.duration,
+            },
+          }
+        );
+      } catch (err) {
+        console.error(
+          `[ForgotPassword] Failed to send email for ${email}:`,
+          err.message
+        );
+      }
     });
 
     // Audit log
@@ -579,8 +669,6 @@ export const forgotPassword = async (req, res) => {
       ...clientInfo,
       metadata: { purpose: "reset_password" },
     });
-
-    res.status(200).json(successResponse);
   } catch (error) {
     console.error("Forgot password error:", error);
     res.status(500).json({

@@ -43,6 +43,11 @@ class EmailService {
     );
   }
 
+  // Generate correlation ID for email tracking
+  generateCorrelationId() {
+    return `email-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
   // Get email templates
   getTemplate(purpose, otp) {
     const templates = {
@@ -122,13 +127,52 @@ class EmailService {
     return templates[purpose] || templates.signup;
   }
 
+  // Send email with retry mechanism
+  async sendWithRetry(msg, correlationId, maxRetries = 3) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await sgMail.send(msg);
+        return response;
+      } catch (error) {
+        const isLastAttempt = attempt === maxRetries;
+
+        if (isLastAttempt) {
+          console.error(
+            `[${correlationId}] All ${maxRetries} attempts failed:`,
+            error.response?.body || error.message
+          );
+          throw error;
+        }
+
+        // Exponential backoff: 1s, 2s, 4s (max 5s)
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        console.warn(
+          `[${correlationId}] Retry ${attempt}/${maxRetries} after ${delay}ms - Error:`,
+          error.response?.body?.errors?.[0]?.message || error.message
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+
   // Send OTP email
   async sendOTP(email, otp, purpose) {
     this.initialize();
 
+    // Generate correlation ID for tracking
+    const correlationId = this.generateCorrelationId();
+    const startTime = Date.now();
+
+    console.log(`[${correlationId}] Starting email send`, {
+      to: email,
+      purpose,
+      timestamp: new Date().toISOString(),
+    });
+
     if (!this.fromEmail) {
       console.error(
-        "Email service not configured - missing SENDGRID_API_KEY or EMAIL_FROM"
+        `[${correlationId}] Email service not configured - missing SENDGRID_API_KEY or EMAIL_FROM`
       );
       throw new Error("EMAIL_SERVICE_NOT_CONFIGURED");
     }
@@ -142,20 +186,39 @@ class EmailService {
       html: template.html,
     };
 
-    console.log(`[SendGrid] Attempting to send email:
-- From: ${this.fromEmail}
-- To: ${email}
-- Subject: ${template.subject}`);
+    console.log(`[${correlationId}] SendGrid API call initiated`, {
+      from: this.fromEmail,
+      to: email,
+      subject: template.subject,
+    });
 
     try {
-      const response = await sgMail.send(msg);
-      console.log("Email sent via SendGrid:", response[0].statusCode);
-      return { success: true, statusCode: response[0].statusCode };
+      const response = await this.sendWithRetry(msg, correlationId);
+      const duration = Date.now() - startTime;
+
+      console.log(`[${correlationId}] Email sent successfully`, {
+        statusCode: response[0].statusCode,
+        duration: `${duration}ms`,
+        messageId: response[0].headers?.["x-message-id"] || "N/A",
+      });
+
+      return {
+        success: true,
+        statusCode: response[0].statusCode,
+        correlationId,
+        duration,
+      };
     } catch (error) {
-      console.error("SendGrid error:", error);
-      if (error.response) {
-        console.error("SendGrid error body:", error.response.body);
-      }
+      const duration = Date.now() - startTime;
+
+      console.error(
+        `[${correlationId}] Email send failed after ${duration}ms`,
+        {
+          error: error.message,
+          errorBody: error.response?.body,
+        }
+      );
+
       throw new Error("EMAIL_SEND_FAILED");
     }
   }
