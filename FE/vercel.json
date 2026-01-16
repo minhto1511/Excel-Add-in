@@ -9,22 +9,15 @@
       }
     }
   ],
-  "routes": [
+  "headers": [
     {
-      "src": "/assets/(.*)",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      },
-      "dest": "/assets/$1"
-    },
-    {
-      "src": "/(.*)",
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "X-Content-Type-Options": "nosniff",
-        "Content-Security-Policy": "frame-ancestors 'self' https://*.officeapps.live.com https://*.office.com https://*.microsoft.com https://*.sharepoint.com"
-      },
-      "dest": "/$1"
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors https://*.office.com https://*.officeapps.live.com https://*.sharepoint.com"
+        }
+      ]
     }
   ]
 }
