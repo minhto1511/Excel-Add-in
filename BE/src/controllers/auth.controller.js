@@ -159,20 +159,26 @@ export const register = async (req, res) => {
       }
     });
 
-    // Audit log for registration success
-    await AuditLog.log("signup", {
+    // ✅ Audit logs fire-and-forget (no await to prevent blocking email)
+    AuditLog.log("signup", {
       userId: user._id,
       email: user.email,
       ...clientInfo,
       status: "success",
-    });
+    }).catch((err) =>
+      console.error("[Register] Audit log failed:", err.message)
+    );
 
-    await AuditLog.log("otp_sent", {
+    AuditLog.log("otp_sent", {
       userId: user._id,
       email: user.email,
       ...clientInfo,
       metadata: { purpose: "signup" },
-    });
+    }).catch((err) =>
+      console.error("[Register] Audit log failed:", err.message)
+    );
+
+    console.log(`[Register] Response sent, email queued for ${email}`);
   } catch (error) {
     console.error("Register error:", error);
     res.status(500).json({
@@ -398,13 +404,17 @@ export const resendOTP = async (req, res) => {
       }
     });
 
-    // Audit log
-    await AuditLog.log("otp_sent", {
+    // ✅ Audit log fire-and-forget
+    AuditLog.log("otp_sent", {
       userId: user?._id,
       email: email.toLowerCase(),
       ...clientInfo,
       metadata: { purpose, isResend: true },
-    });
+    }).catch((err) =>
+      console.error("[ResendOTP] Audit log failed:", err.message)
+    );
+
+    console.log(`[ResendOTP] Response sent, email queued for ${email}`);
   } catch (error) {
     console.error("Resend OTP error:", error);
     res.status(500).json({
@@ -656,19 +666,25 @@ export const forgotPassword = async (req, res) => {
       }
     });
 
-    // Audit log
-    await AuditLog.log("password_reset_requested", {
+    // ✅ Audit logs fire-and-forget
+    AuditLog.log("password_reset_requested", {
       userId: user._id,
       email: user.email,
       ...clientInfo,
-    });
+    }).catch((err) =>
+      console.error("[ForgotPassword] Audit log failed:", err.message)
+    );
 
-    await AuditLog.log("otp_sent", {
+    AuditLog.log("otp_sent", {
       userId: user._id,
       email: user.email,
       ...clientInfo,
       metadata: { purpose: "reset_password" },
-    });
+    }).catch((err) =>
+      console.error("[ForgotPassword] Audit log failed:", err.message)
+    );
+
+    console.log(`[ForgotPassword] Response sent, email queued for ${email}`);
   } catch (error) {
     console.error("Forgot password error:", error);
     res.status(500).json({

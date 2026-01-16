@@ -140,14 +140,14 @@ const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
           console.log(`[Polling ${pollCount}] Status:`, statusData.status);
 
           if (statusData.status === "paid") {
-            console.log("[Polling] Payment confirmed! Calling onUpgradeSuccess...");
+            console.log("[Polling] Payment confirmed! Updating UI immediately...");
             clearInterval(pollingRef.current);
+            pollingRef.current = null;
             setStatus("paid");
-            // Give user time to see success message, then callback
-            setTimeout(() => {
-              console.log("[Polling] Triggering upgrade success callback");
-              onUpgradeSuccess?.();
-            }, 2000);
+
+            // ✅ Call immediately - no setTimeout delay
+            console.log("[Polling] Calling onUpgradeSuccess NOW");
+            onUpgradeSuccess?.();
           } else if (statusData.status === "expired") {
             console.log("[Polling] Payment expired");
             clearInterval(pollingRef.current);
