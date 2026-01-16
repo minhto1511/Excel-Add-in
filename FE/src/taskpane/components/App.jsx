@@ -284,9 +284,25 @@ const App = (props) => {
           <DialogBody>
             <UpgradePro
               onClose={() => setShowUpgradeDialog(false)}
-              onUpgradeSuccess={() => {
+              onUpgradeSuccess={async () => {
+                // ✅ CRITICAL FIX: Fetch fresh data BEFORE closing dialog
+                console.log("[App] Payment success! Refreshing user data...");
+                try {
+                  const [profileData, creditsData] = await Promise.all([
+                    getProfile(),
+                    getCredits(),
+                  ]);
+
+                  // Update state with new Pro status
+                  setUser(profileData);
+                  setCredits(creditsData);
+
+                  console.log("[App] User upgraded to:", creditsData.plan);
+                } catch (error) {
+                  console.error("[App] Failed to refresh after payment:", error);
+                }
+                // Close dialog AFTER state is updated
                 setShowUpgradeDialog(false);
-                checkAuth(); // Refresh user data
               }}
               currentPlan={credits?.plan}
             />
