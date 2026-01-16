@@ -21,7 +21,8 @@
       "src": "/(.*)",
       "headers": {
         "Access-Control-Allow-Origin": "*",
-        "X-Content-Type-Options": "nosniff"
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "frame-ancestors 'self' https://*.officeapps.live.com https://*.office.com https://*.microsoft.com https://*.sharepoint.com"
       },
       "dest": "/$1"
     }
