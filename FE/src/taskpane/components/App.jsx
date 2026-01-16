@@ -300,6 +300,16 @@ const App = (props) => {
                   console.log("[App] User upgraded to:", creditsData.plan);
                 } catch (error) {
                   console.error("[App] Failed to refresh after payment:", error);
+
+                  // If token expired, user needs to re-login but payment was successful
+                  // Force reload to refresh tokens (temporary workaround)
+                  if (error.message?.includes("hết hạn") || error.message?.includes("401")) {
+                    console.log("[App] Token expired, but payment succeeded. Reloading...");
+                    // Give user a moment to see success, then reload
+                    setTimeout(() => {
+                      window.location.reload();
+                    }, 1500);
+                  }
                 }
                 // Close dialog AFTER state is updated
                 setShowUpgradeDialog(false);
