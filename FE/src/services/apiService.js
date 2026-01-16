@@ -52,8 +52,12 @@ export function isLoggedIn() {
 
 /**
  * Generic API call wrapper với error handling và auth
+ * ✅ AUTO-REFRESH: Automatically refresh token on 401 and retry
  */
-async function apiCall(endpoint, options = {}) {
+let isRefreshing = false;
+let refreshPromise = null;
+
+async function apiCall(endpoint, options = {}, isRetry = false) {
   try {
     const token = getAuthToken();
     const headers = {
@@ -71,14 +75,56 @@ async function apiCall(endpoint, options = {}) {
       ...options,
     });
 
+    // Handle 401 - Try to refresh token
+    if (response.status === 401 && !isRetry) {
+      console.log("[API] 401 detected, attempting token refresh...");
+
+      // Get refresh token
+      const refreshToken = localStorage.getItem("refresh_token");
+
+      if (refreshToken) {
+        try {
+          // Prevent multiple simultaneous refresh calls
+          if (!isRefreshing) {
+            isRefreshing = true;
+            refreshPromise = fetch(`${API_BASE_URL}/auth/refresh`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ refreshToken }),
+            }).then(async (res) => {
+              if (!res.ok) throw new Error("Refresh failed");
+              return res.json();
+            });
+          }
+
+          const refreshData = await refreshPromise;
+          isRefreshing = false;
+
+          if (refreshData.token) {
+            console.log("[API] Token refreshed successfully!");
+            setAuthToken(refreshData.token);
+            if (refreshData.refreshToken) {
+              localStorage.setItem("refresh_token", refreshData.refreshToken);
+            }
+
+            // Retry original request with new token
+            return apiCall(endpoint, options, true);
+          }
+        } catch (refreshError) {
+          console.error("[API] Token refresh failed:", refreshError);
+          isRefreshing = false;
+        }
+      }
+
+      // Refresh failed or no refresh token - clear auth
+      clearAuthToken();
+      localStorage.removeItem("refresh_token");
+      throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+    }
+
     const data = await response.json();
 
     if (!response.ok) {
-      // Handle specific error codes
-      if (response.status === 401) {
-        clearAuthToken();
-        throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
-      }
       if (response.status === 403) {
         throw new Error(data.message || "Hết lượt sử dụng. Vui lòng nâng cấp!");
       }
