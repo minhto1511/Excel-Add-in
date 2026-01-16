@@ -24,7 +24,10 @@ app.use(
       "https://localhost:4001",
       "http://localhost:4001",
       "null", // Excel taskpane origin
-      // Production URLs
+      // Production URLs - Vercel
+      "https://excel-add-in-six.vercel.app",
+      "https://excel-add-in-git-main-minhto1511s-projects.vercel.app",
+      "https://excel-add-in-jbfg5qld4-minhto1511s-projects.vercel.app",
       process.env.ALLOWED_ORIGINS,
     ].filter(Boolean),
     credentials: true,

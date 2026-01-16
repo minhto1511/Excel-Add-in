@@ -6,11 +6,8 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const webpack = require("webpack");
 
 const urlDev = "https://localhost:3000/";
-// Production URL - Vercel deployment
-// Will be updated with actual URL after first deployment
-const urlProd = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}/`
-  : "https://eoffice-excel-addin.vercel.app/";
+// Production URL - Vercel deployment (UPDATED)
+const urlProd = "https://excel-add-in-six.vercel.app/";
 
 async function getHttpsOptions() {
   const httpsOptions = await devCerts.getHttpsServerOptions();
