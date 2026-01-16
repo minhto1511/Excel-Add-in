@@ -9,27 +9,16 @@
       }
     }
   ],
-  "headers": [
+  "routes": [
     {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, PUT, DELETE, OPTIONS"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "X-Requested-With, Content-Type, Authorization"
-        },
-        {
-          "key": "Content-Security-Policy",
-          "value": "frame-ancestors https://*.office.com https://*.officeapps.live.com https://*.sharepoint.com https://*.microsoft.com"
-        }
-      ]
+      "src": "/(.*)",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "X-Requested-With, Content-Type, Authorization",
+        "Content-Security-Policy": "frame-ancestors https://*.office.com https://*.officeapps.live.com https://*.sharepoint.com https://*.microsoft.com"
+      },
+      "dest": "/$1"
     }
   ]
 }
