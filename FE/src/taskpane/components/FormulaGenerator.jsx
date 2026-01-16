@@ -80,26 +80,8 @@ const FormulaGenerator = ({ disabled = false, onRequestComplete }) => {
         }
       }
 
-      // Gọi API với AbortController
-      const abortController = new AbortController();
-      setCurrentAbortController(abortController);
-
-      const response = await fetch(`http://localhost:3001/api/v1/ai/ask`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-        },
-        body: JSON.stringify({
-          type: "formula",
-          prompt,
-          excelContext,
-        }),
-        signal: abortController.signal,
-      });
-
-      const data = await response.json();
-      const result = data.result;
+      // Gọi API qua apiService (auto handles auth, base URL, etc.)
+      const result = await generateExcelFormula(prompt, excelContext);
 
       // Xử lý trường hợp AI trả về formula rỗng (yêu cầu không rõ ràng)
       if (!result.formula || result.formula.trim() === "") {

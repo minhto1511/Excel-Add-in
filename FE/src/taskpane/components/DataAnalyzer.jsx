@@ -51,26 +51,8 @@ const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
         throw new Error("Không có dữ liệu để phân tích! Vui lòng chọn vùng dữ liệu trong Excel.");
       }
 
-      // Gọi API với AbortController
-      const abortController = new AbortController();
-      setCurrentAbortController(abortController);
-
-      const response = await fetch(`http://localhost:3001/api/v1/ai/ask`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-        },
-        body: JSON.stringify({
-          type: "analysis",
-          prompt: "analyze",
-          excelContext,
-        }),
-        signal: abortController.signal,
-      });
-
-      const data = await response.json();
-      const result = data.result;
+      // Gọi API qua apiService (auto handles auth, base URL, etc.)
+      const result = await analyzeExcelData(excelContext);
       setAnalysis(result);
 
       // Notify parent to refresh credits
