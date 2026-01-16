@@ -14,7 +14,9 @@
   "scripts": {
     "build": "webpack --mode production",
     "build:dev": "webpack --mode development",
+    "vercel-build": "webpack --mode production",
     "dev-server": "webpack serve --mode development",
+    "preview": "npx serve dist -p 3000",
     "lint": "office-addin-lint check",
     "lint:fix": "office-addin-lint fix",
     "prettier": "office-addin-lint prettier",
