@@ -131,35 +131,49 @@ const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
       let pollCount = 0;
       const maxPolls = 120; // 120 * 3s = 6 minutes max polling time
 
+      console.log("========== [UpgradePro] startPolling CALLED ==========");
+      console.log("[UpgradePro] intentId:", intentId);
+
       pollingRef.current = setInterval(async () => {
         try {
           pollCount++;
           console.log(`[Polling ${pollCount}/${maxPolls}] Checking intent:`, intentId);
 
           const statusData = await getPaymentIntentStatus(intentId);
-          console.log(`[Polling ${pollCount}] Status:`, statusData.status);
+          console.log(`[Polling ${pollCount}] Response:`, JSON.stringify(statusData));
 
           if (statusData.status === "paid") {
-            console.log("[Polling] Payment confirmed! Stopping polling...");
+            console.log("========== [UpgradePro] PAYMENT CONFIRMED ==========");
+            console.log("[UpgradePro] Timestamp:", new Date().toISOString());
+            console.log("[UpgradePro] Stopping polling...");
             clearInterval(pollingRef.current);
             pollingRef.current = null;
 
-            // ✅ CRITICAL FIX: Wait for parent to update state BEFORE showing success
-            console.log("[Polling] Calling onUpgradeSuccess and waiting...");
+            // ✅ CRITICAL: Wait for parent to update state BEFORE showing success
+            console.log("[UpgradePro] Calling onUpgradeSuccess and AWAITING...");
+            const callStartTime = Date.now();
+
             try {
               await onUpgradeSuccess?.();
-              console.log("[Polling] onUpgradeSuccess completed successfully!");
+              console.log(
+                "[UpgradePro] onUpgradeSuccess COMPLETED in",
+                Date.now() - callStartTime,
+                "ms"
+              );
             } catch (err) {
-              console.error("[Polling] onUpgradeSuccess failed:", err);
-              // Still show success since payment actually succeeded
+              console.error("[UpgradePro] onUpgradeSuccess FAILED:", err.message);
+              console.log("[UpgradePro] Still showing success since payment actually happened");
             }
 
             // Only set status to paid AFTER parent finished updating
+            console.log("[UpgradePro] Setting status to 'paid'...");
             setStatus("paid");
+            console.log("[UpgradePro] Status set to 'paid'. UI should show success now.");
 
             // Auto-close dialog after 2 seconds to show success message
+            console.log("[UpgradePro] Will auto-close in 2 seconds...");
             setTimeout(() => {
-              console.log("[Polling] Auto-closing dialog...");
+              console.log("[UpgradePro] Auto-closing dialog NOW...");
               onClose?.();
             }, 2000);
           } else if (statusData.status === "expired") {

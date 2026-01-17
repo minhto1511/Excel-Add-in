@@ -285,37 +285,62 @@ const App = (props) => {
             <UpgradePro
               onClose={() => setShowUpgradeDialog(false)}
               onUpgradeSuccess={async () => {
-                // ✅ CRITICAL FIX: Fetch fresh data and update state
-                // UpgradePro will wait for this to complete before showing success
-                console.log("[App] Payment success! Refreshing user data...");
+                // ✅ DEBUG: Comprehensive logging
+                const startTime = Date.now();
+                console.log("========== [App] onUpgradeSuccess STARTED ==========");
+                console.log("[App] Timestamp:", new Date().toISOString());
+                console.log("[App] Current user state:", user);
+                console.log("[App] Current credits state:", credits);
+
                 try {
+                  console.log("[App] Fetching getProfile()...");
+                  const profilePromise = getProfile();
+
+                  console.log("[App] Fetching getCredits()...");
+                  const creditsPromise = getCredits();
+
                   const [profileData, creditsData] = await Promise.all([
-                    getProfile(),
-                    getCredits(),
+                    profilePromise,
+                    creditsPromise,
                   ]);
 
+                  console.log(
+                    "[App] API Response - profileData:",
+                    JSON.stringify(profileData, null, 2)
+                  );
+                  console.log(
+                    "[App] API Response - creditsData:",
+                    JSON.stringify(creditsData, null, 2)
+                  );
+                  console.log("[App] creditsData.plan =", creditsData?.plan);
+
                   // Update state with new Pro status
+                  console.log("[App] Calling setUser()...");
                   setUser(profileData);
+
+                  console.log("[App] Calling setCredits()...");
                   setCredits(creditsData);
 
-                  console.log("[App] User upgraded to:", creditsData.plan);
+                  console.log(
+                    "[App] State updates QUEUED. Time taken:",
+                    Date.now() - startTime,
+                    "ms"
+                  );
+                  console.log("========== [App] onUpgradeSuccess COMPLETED ==========");
                 } catch (error) {
-                  console.error("[App] Failed to refresh after payment:", error);
+                  console.error("========== [App] onUpgradeSuccess FAILED ==========");
+                  console.error("[App] Error:", error);
+                  console.error("[App] Error message:", error.message);
+                  console.error("[App] Time taken:", Date.now() - startTime, "ms");
 
                   // If token expired, user needs to re-login but payment was successful
-                  // Force reload to refresh tokens (temporary workaround)
                   if (error.message?.includes("hết hạn") || error.message?.includes("401")) {
-                    console.log("[App] Token expired, but payment succeeded. Reloading...");
-                    // Give user a moment to see success, then reload
-                    setTimeout(() => {
-                      window.location.reload();
-                    }, 1500);
+                    console.log("[App] Token expired, reloading in 1.5s...");
+                    setTimeout(() => window.location.reload(), 1500);
                   }
 
-                  // Re-throw so UpgradePro knows there was an error
                   throw error;
                 }
-                // NOTE: Dialog close is now handled by UpgradePro's auto-close
               }}
               currentPlan={credits?.plan}
             />
