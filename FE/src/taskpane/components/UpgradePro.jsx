@@ -131,50 +131,27 @@ const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
       let pollCount = 0;
       const maxPolls = 120; // 120 * 3s = 6 minutes max polling time
 
-      console.log("========== [UpgradePro] startPolling CALLED ==========");
-      console.log("[UpgradePro] intentId:", intentId);
-
       pollingRef.current = setInterval(async () => {
         try {
           pollCount++;
           console.log(`[Polling ${pollCount}/${maxPolls}] Checking intent:`, intentId);
 
           const statusData = await getPaymentIntentStatus(intentId);
-          console.log(`[Polling ${pollCount}] Response:`, JSON.stringify(statusData));
+          console.log(`[Polling ${pollCount}] Status:`, statusData.status);
 
           if (statusData.status === "paid") {
-            console.log("========== [UpgradePro] PAYMENT CONFIRMED ==========");
-            console.log("[UpgradePro] Timestamp:", new Date().toISOString());
-            console.log("[UpgradePro] Stopping polling...");
+            console.log("[Payment] ✅ Payment confirmed!");
             clearInterval(pollingRef.current);
             pollingRef.current = null;
 
-            // ✅ CRITICAL: Wait for parent to update state BEFORE showing success
-            console.log("[UpgradePro] Calling onUpgradeSuccess and AWAITING...");
-            const callStartTime = Date.now();
-
-            try {
-              await onUpgradeSuccess?.();
-              console.log(
-                "[UpgradePro] onUpgradeSuccess COMPLETED in",
-                Date.now() - callStartTime,
-                "ms"
-              );
-            } catch (err) {
-              console.error("[UpgradePro] onUpgradeSuccess FAILED:", err.message);
-              console.log("[UpgradePro] Still showing success since payment actually happened");
-            }
-
-            // Only set status to paid AFTER parent finished updating
-            console.log("[UpgradePro] Setting status to 'paid'...");
+            // Show success UI
             setStatus("paid");
-            console.log("[UpgradePro] Status set to 'paid'. UI should show success now.");
 
-            // Auto-close dialog after 2 seconds to show success message
-            console.log("[UpgradePro] Will auto-close in 2 seconds...");
+            // ✅ SIMPLE FIX: Reload page after 2 seconds to get fresh state
+            // This is the most reliable way to ensure UI reflects new Pro status
             setTimeout(() => {
-              console.log("[UpgradePro] Auto-closing dialog NOW...");
-              onClose?.();
+              console.log("[Payment] Reloading page to refresh state...");
+              window.location.reload();
             }, 2000);
           } else if (statusData.status === "expired") {
             console.log("[Polling] Payment expired");
@@ -190,18 +167,15 @@ const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
           }
         } catch (err) {
           console.error("[Polling] Error:", err);
-          // Nếu lỗi 401 (token expired), dừng polling và thông báo
           if (err.message?.includes("hết hạn") || err.message?.includes("401")) {
             clearInterval(pollingRef.current);
-            setError(
-              "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại để kiểm tra trạng thái thanh toán."
-            );
+            setError("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
             setStatus("error");
           }
         }
-      }, 3000); // Polling mỗi 3 giây
+      }, 3000);
     },
-    [onUpgradeSuccess, onClose]
+    [] // No dependencies needed - we just reload the page
   );
 
   const handleCopyCode = () => {

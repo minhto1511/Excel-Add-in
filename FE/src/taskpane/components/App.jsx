@@ -284,63 +284,9 @@ const App = (props) => {
           <DialogBody>
             <UpgradePro
               onClose={() => setShowUpgradeDialog(false)}
-              onUpgradeSuccess={async () => {
-                // ✅ DEBUG: Comprehensive logging
-                const startTime = Date.now();
-                console.log("========== [App] onUpgradeSuccess STARTED ==========");
-                console.log("[App] Timestamp:", new Date().toISOString());
-                console.log("[App] Current user state:", user);
-                console.log("[App] Current credits state:", credits);
-
-                try {
-                  console.log("[App] Fetching getProfile()...");
-                  const profilePromise = getProfile();
-
-                  console.log("[App] Fetching getCredits()...");
-                  const creditsPromise = getCredits();
-
-                  const [profileData, creditsData] = await Promise.all([
-                    profilePromise,
-                    creditsPromise,
-                  ]);
-
-                  console.log(
-                    "[App] API Response - profileData:",
-                    JSON.stringify(profileData, null, 2)
-                  );
-                  console.log(
-                    "[App] API Response - creditsData:",
-                    JSON.stringify(creditsData, null, 2)
-                  );
-                  console.log("[App] creditsData.plan =", creditsData?.plan);
-
-                  // Update state with new Pro status
-                  console.log("[App] Calling setUser()...");
-                  setUser(profileData);
-
-                  console.log("[App] Calling setCredits()...");
-                  setCredits(creditsData);
-
-                  console.log(
-                    "[App] State updates QUEUED. Time taken:",
-                    Date.now() - startTime,
-                    "ms"
-                  );
-                  console.log("========== [App] onUpgradeSuccess COMPLETED ==========");
-                } catch (error) {
-                  console.error("========== [App] onUpgradeSuccess FAILED ==========");
-                  console.error("[App] Error:", error);
-                  console.error("[App] Error message:", error.message);
-                  console.error("[App] Time taken:", Date.now() - startTime, "ms");
-
-                  // If token expired, user needs to re-login but payment was successful
-                  if (error.message?.includes("hết hạn") || error.message?.includes("401")) {
-                    console.log("[App] Token expired, reloading in 1.5s...");
-                    setTimeout(() => window.location.reload(), 1500);
-                  }
-
-                  throw error;
-                }
+              onUpgradeSuccess={() => {
+                // No longer needed - page will reload after payment success
+                console.log("[App] Payment successful - page will reload");
               }}
               currentPlan={credits?.plan}
             />
