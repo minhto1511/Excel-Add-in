@@ -130,8 +130,11 @@ const UpgradePro = ({ onClose, currentPlan }) => {
 
       let pollCount = 0;
       const maxPolls = 120; // 120 * 3s = 6 minutes max polling time
+      let expiredCount = 0; // Track how many times we've seen expired
+      const maxExpiredPolls = 40; // Continue 2 more minutes after expired (40 * 3s)
 
-      pollingRef.current = setInterval(async () => {
+      // ✅ FIX: Extract check function so we can call it immediately
+      const checkStatus = async () => {
         try {
           pollCount++;
           console.log(`[Polling ${pollCount}/${maxPolls}] Checking intent:`, intentId);
@@ -147,7 +150,7 @@ const UpgradePro = ({ onClose, currentPlan }) => {
             // Show success UI
             setStatus("paid");
 
-            // ✅ NEW LOGIC: Write to localStorage - App will poll and detect this
+            // Write to localStorage - App will poll and detect this
             console.log("[Payment] Setting localStorage flag...");
             localStorage.setItem("payment_success", "true");
             localStorage.setItem("payment_timestamp", Date.now().toString());
@@ -157,10 +160,24 @@ const UpgradePro = ({ onClose, currentPlan }) => {
               console.log("[Payment] Closing dialog...");
               onClose?.();
             }, 2000);
-          } else if (statusData.status === "expired") {
-            console.log("[Polling] Payment expired");
-            clearInterval(pollingRef.current);
-            setStatus("expired");
+
+            return true; // Stop polling
+          }
+
+          if (statusData.status === "expired") {
+            expiredCount++;
+            console.log(
+              `[Polling] Expired (${expiredCount}/${maxExpiredPolls}), but continuing for webhook grace period...`
+            );
+
+            // ✅ FIX: Keep polling for 2 more minutes after expired
+            // This gives webhook time to process payment
+            if (expiredCount >= maxExpiredPolls) {
+              console.log("[Polling] Grace period ended, stopping");
+              clearInterval(pollingRef.current);
+              setStatus("expired");
+              return true; // Stop polling
+            }
           }
 
           // Stop polling after max attempts
@@ -168,16 +185,28 @@ const UpgradePro = ({ onClose, currentPlan }) => {
             console.log("[Polling] Max attempts reached, stopping");
             clearInterval(pollingRef.current);
             setError("Hết thời gian chờ. Nếu đã thanh toán, vui lòng refresh trang.");
+            return true; // Stop polling
           }
+
+          return false; // Continue polling
         } catch (err) {
           console.error("[Polling] Error:", err);
           if (err.message?.includes("hết hạn") || err.message?.includes("401")) {
             clearInterval(pollingRef.current);
             setError("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
             setStatus("error");
+            return true; // Stop polling
           }
+          return false; // Continue polling on other errors
         }
-      }, 3000);
+      };
+
+      // ✅ FIX: Call immediately on start (don't wait 3 seconds)
+      console.log("[Polling] Starting - checking immediately...");
+      checkStatus();
+
+      // Then set up interval for subsequent checks
+      pollingRef.current = setInterval(checkStatus, 3000);
     },
     [onClose]
   );
