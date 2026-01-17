@@ -126,18 +126,23 @@ const UpgradePro = ({ onClose, currentPlan }) => {
 
   const startPolling = useCallback(
     (intentId) => {
+      console.log("[Polling] Starting polling for intent:", intentId);
+
+      // Clear any existing polling
       if (pollingRef.current) {
-        clearInterval(pollingRef.current);
+        clearTimeout(pollingRef.current);
+        pollingRef.current = null;
       }
 
       let pollCount = 0;
       const maxPolls = 120; // 120 * 3s = 6 minutes max polling time
-      let isProcessing = false; // Flag to prevent duplicate calls
+      let isStopped = false; // Flag to stop polling
 
-      const checkStatus = async () => {
-        // Prevent overlapping calls
-        if (isProcessing) return;
-        isProcessing = true;
+      const pollOnce = async () => {
+        if (isStopped) {
+          console.log("[Polling] Stopped, not polling");
+          return;
+        }
 
         try {
           pollCount++;
@@ -148,7 +153,7 @@ const UpgradePro = ({ onClose, currentPlan }) => {
 
           if (statusData.status === "paid") {
             console.log("[Payment] ✅ Payment confirmed!");
-            clearInterval(pollingRef.current);
+            isStopped = true;
             pollingRef.current = null;
 
             // Show success UI
@@ -165,7 +170,7 @@ const UpgradePro = ({ onClose, currentPlan }) => {
             return; // Stop polling
           } else if (statusData.status === "expired") {
             console.log("[Polling] Payment expired");
-            clearInterval(pollingRef.current);
+            isStopped = true;
             pollingRef.current = null;
             setStatus("expired");
             return; // Stop polling
@@ -174,28 +179,38 @@ const UpgradePro = ({ onClose, currentPlan }) => {
           // Stop polling after max attempts
           if (pollCount >= maxPolls) {
             console.log("[Polling] Max attempts reached, stopping");
-            clearInterval(pollingRef.current);
+            isStopped = true;
             pollingRef.current = null;
             setError("Hết thời gian chờ. Nếu đã thanh toán, vui lòng refresh trang.");
+            return;
+          }
+
+          // ✅ Schedule next poll using setTimeout (more reliable in Office WebView)
+          if (!isStopped) {
+            console.log("[Polling] Scheduling next poll in 3s...");
+            pollingRef.current = setTimeout(pollOnce, 3000);
           }
         } catch (err) {
           console.error("[Polling] Error:", err);
           if (err.message?.includes("hết hạn") || err.message?.includes("401")) {
-            clearInterval(pollingRef.current);
+            isStopped = true;
             pollingRef.current = null;
             setError("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
             setStatus("error");
+            return;
           }
-        } finally {
-          isProcessing = false;
+
+          // On other errors, continue polling
+          if (!isStopped) {
+            console.log("[Polling] Error occurred, retrying in 3s...");
+            pollingRef.current = setTimeout(pollOnce, 3000);
+          }
         }
       };
 
-      // ✅ FIRST POLL IMMEDIATELY (fix for Office WebView)
-      checkStatus();
-
-      // ✅ THEN SET INTERVAL for subsequent polls
-      pollingRef.current = setInterval(checkStatus, 3000);
+      // ✅ START POLLING IMMEDIATELY
+      console.log("[Polling] Starting first poll...");
+      pollOnce();
     },
     [onClose]
   );
