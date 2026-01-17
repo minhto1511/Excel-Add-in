@@ -147,11 +147,15 @@ const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
             // Show success UI
             setStatus("paid");
 
-            // ✅ SIMPLE FIX: Reload page after 2 seconds to get fresh state
-            // This is the most reliable way to ensure UI reflects new Pro status
+            // ✅ FIX: Dispatch custom event for App to listen (works in Office iframe)
+            // window.location.reload() doesn't work in Office Add-in iframe
+            console.log("[Payment] Dispatching paymentSuccess event...");
+            window.dispatchEvent(new CustomEvent("paymentSuccess"));
+
+            // Close dialog after 2 seconds
             setTimeout(() => {
-              console.log("[Payment] Reloading page to refresh state...");
-              window.location.reload();
+              console.log("[Payment] Closing dialog...");
+              onClose?.();
             }, 2000);
           } else if (statusData.status === "expired") {
             console.log("[Polling] Payment expired");
@@ -175,7 +179,7 @@ const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
         }
       }, 3000);
     },
-    [] // No dependencies needed - we just reload the page
+    [onClose]
   );
 
   const handleCopyCode = () => {

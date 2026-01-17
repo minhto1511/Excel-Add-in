@@ -59,6 +59,26 @@ const App = (props) => {
     checkAuth();
   }, []);
 
+  // ✅ Listen for payment success event (dispatched by UpgradePro)
+  // This works in Office iframe where window.location.reload() doesn't
+  useEffect(() => {
+    const handlePaymentSuccess = async () => {
+      console.log("[App] 🎉 Payment success event received! Refreshing data...");
+      try {
+        const [profileData, creditsData] = await Promise.all([getProfile(), getCredits()]);
+        console.log("[App] Fresh data - plan:", creditsData?.plan);
+        setUser(profileData);
+        setCredits(creditsData);
+        setShowUpgradeDialog(false); // Close dialog if still open
+      } catch (error) {
+        console.error("[App] Failed to refresh after payment:", error);
+      }
+    };
+
+    window.addEventListener("paymentSuccess", handlePaymentSuccess);
+    return () => window.removeEventListener("paymentSuccess", handlePaymentSuccess);
+  }, []);
+
   const checkAuth = async () => {
     setIsLoading(true);
     if (isLoggedIn()) {
