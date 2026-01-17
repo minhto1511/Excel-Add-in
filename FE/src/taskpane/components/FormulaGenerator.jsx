@@ -113,13 +113,11 @@ const FormulaGenerator = ({ disabled = false, onRequestComplete }) => {
   };
 
   /**
-   * Cancel pending request
+   * Cancel pending request - KISS: just reset loading state
    */
   const handleCancel = () => {
-    if (currentAbortController) {
-      currentAbortController.abort();
-      setCurrentAbortController(null);
-    }
+    setIsLoading(false);
+    setError("Đã hủy yêu cầu");
   };
 
   /**

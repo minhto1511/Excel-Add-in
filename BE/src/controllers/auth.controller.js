@@ -609,15 +609,11 @@ export const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
-      // Return success anyway to prevent email enumeration
-      await AuditLog.log("password_reset_requested", {
-        email: email.toLowerCase(),
-        ...clientInfo,
-        status: "failed",
-        metadata: { reason: "USER_NOT_FOUND" },
+      // ✅ Return error if email not found (KISS - user requested)
+      return res.status(404).json({
+        error: "USER_NOT_FOUND",
+        message: "Email không tồn tại trong hệ thống",
       });
-
-      return res.status(200).json(successResponse);
     }
 
     // Generate OTP
