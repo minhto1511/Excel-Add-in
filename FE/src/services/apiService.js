@@ -338,9 +338,17 @@ export async function createPaymentIntent(plan) {
 
 /**
  * Lấy trạng thái payment intent (polling)
+ * ✅ FIX: Add cache-buster to prevent Office WebView caching
  */
 export async function getPaymentIntentStatus(intentId) {
-  return apiCall(`/payments/intents/${intentId}`);
+  // Add timestamp to bust cache in Office WebView
+  const cacheBuster = `t=${Date.now()}`;
+  return apiCall(`/payments/intents/${intentId}?${cacheBuster}`, {
+    headers: {
+      "Cache-Control": "no-cache, no-store",
+      Pragma: "no-cache",
+    },
+  });
 }
 
 /**

@@ -88,6 +88,14 @@ export const getPaymentIntentStatus = async (req, res) => {
 
     const status = await paymentService.getIntentStatus(id, userId);
 
+    // ✅ FIX: Prevent caching in Office WebView
+    res.setHeader(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate, proxy-revalidate"
+    );
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+
     res.status(200).json(status);
   } catch (error) {
     console.error("Get intent status error:", error);

@@ -147,8 +147,16 @@ const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
             // Show success UI
             setStatus("paid");
 
-            // ✅ FIX: Dispatch custom event for App to listen (works in Office iframe)
-            // window.location.reload() doesn't work in Office Add-in iframe
+            // ✅ FIX 1: Call onUpgradeSuccess callback (triggers App to refetch)
+            console.log("[Payment] Calling onUpgradeSuccess...");
+            try {
+              await onUpgradeSuccess?.();
+              console.log("[Payment] onUpgradeSuccess completed!");
+            } catch (err) {
+              console.error("[Payment] onUpgradeSuccess error:", err);
+            }
+
+            // ✅ FIX 2: Also dispatch event for redundancy
             console.log("[Payment] Dispatching paymentSuccess event...");
             window.dispatchEvent(new CustomEvent("paymentSuccess"));
 
@@ -179,7 +187,7 @@ const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
         }
       }, 3000);
     },
-    [onClose]
+    [onUpgradeSuccess, onClose]
   );
 
   const handleCopyCode = () => {

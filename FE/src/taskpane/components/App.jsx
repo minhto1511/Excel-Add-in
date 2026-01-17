@@ -304,9 +304,20 @@ const App = (props) => {
           <DialogBody>
             <UpgradePro
               onClose={() => setShowUpgradeDialog(false)}
-              onUpgradeSuccess={() => {
-                // No longer needed - page will reload after payment success
-                console.log("[App] Payment successful - page will reload");
+              onUpgradeSuccess={async () => {
+                // ✅ FIX: Fetch fresh data from server and update state
+                console.log("[App] onUpgradeSuccess called! Fetching fresh data...");
+                try {
+                  const [profileData, creditsData] = await Promise.all([
+                    getProfile(),
+                    getCredits(),
+                  ]);
+                  console.log("[App] Fresh data - plan:", creditsData?.plan);
+                  setUser(profileData);
+                  setCredits(creditsData);
+                } catch (error) {
+                  console.error("[App] Failed to refresh data:", error);
+                }
               }}
               currentPlan={credits?.plan}
             />
