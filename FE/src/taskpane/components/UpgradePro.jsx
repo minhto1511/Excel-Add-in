@@ -75,7 +75,7 @@ const useCountdown = (targetTime) => {
 // MAIN COMPONENT
 // ============================================================================
 
-const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
+const UpgradePro = ({ onClose, currentPlan }) => {
   const [pricing, setPricing] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState("pro_monthly");
   const [intent, setIntent] = useState(null);
@@ -147,18 +147,10 @@ const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
             // Show success UI
             setStatus("paid");
 
-            // ✅ FIX 1: Call onUpgradeSuccess callback (triggers App to refetch)
-            console.log("[Payment] Calling onUpgradeSuccess...");
-            try {
-              await onUpgradeSuccess?.();
-              console.log("[Payment] onUpgradeSuccess completed!");
-            } catch (err) {
-              console.error("[Payment] onUpgradeSuccess error:", err);
-            }
-
-            // ✅ FIX 2: Also dispatch event for redundancy
-            console.log("[Payment] Dispatching paymentSuccess event...");
-            window.dispatchEvent(new CustomEvent("paymentSuccess"));
+            // ✅ NEW LOGIC: Write to localStorage - App will poll and detect this
+            console.log("[Payment] Setting localStorage flag...");
+            localStorage.setItem("payment_success", "true");
+            localStorage.setItem("payment_timestamp", Date.now().toString());
 
             // Close dialog after 2 seconds
             setTimeout(() => {
@@ -187,7 +179,7 @@ const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
         }
       }, 3000);
     },
-    [onUpgradeSuccess, onClose]
+    [onClose]
   );
 
   const handleCopyCode = () => {

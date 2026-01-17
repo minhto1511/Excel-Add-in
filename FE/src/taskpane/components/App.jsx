@@ -59,24 +59,33 @@ const App = (props) => {
     checkAuth();
   }, []);
 
-  // ✅ Listen for payment success event (dispatched by UpgradePro)
-  // This works in Office iframe where window.location.reload() doesn't
+  // ✅ NEW LOGIC: Poll localStorage for payment success flag
+  // This is more reliable than callbacks or events in Office iframe
   useEffect(() => {
-    const handlePaymentSuccess = async () => {
-      console.log("[App] 🎉 Payment success event received! Refreshing data...");
-      try {
-        const [profileData, creditsData] = await Promise.all([getProfile(), getCredits()]);
-        console.log("[App] Fresh data - plan:", creditsData?.plan);
-        setUser(profileData);
-        setCredits(creditsData);
-        setShowUpgradeDialog(false); // Close dialog if still open
-      } catch (error) {
-        console.error("[App] Failed to refresh after payment:", error);
+    const checkPaymentSuccess = async () => {
+      const flag = localStorage.getItem("payment_success");
+      if (flag === "true") {
+        console.log("[App] 🎉 Payment success flag detected! Refreshing data...");
+
+        // Clear flag immediately to prevent duplicate processing
+        localStorage.removeItem("payment_success");
+        localStorage.removeItem("payment_timestamp");
+
+        try {
+          const [profileData, creditsData] = await Promise.all([getProfile(), getCredits()]);
+          console.log("[App] Fresh data - plan:", creditsData?.plan);
+          setUser(profileData);
+          setCredits(creditsData);
+          setShowUpgradeDialog(false);
+        } catch (error) {
+          console.error("[App] Failed to refresh after payment:", error);
+        }
       }
     };
 
-    window.addEventListener("paymentSuccess", handlePaymentSuccess);
-    return () => window.removeEventListener("paymentSuccess", handlePaymentSuccess);
+    // Check every 500ms
+    const interval = setInterval(checkPaymentSuccess, 500);
+    return () => clearInterval(interval);
   }, []);
 
   const checkAuth = async () => {
@@ -302,25 +311,7 @@ const App = (props) => {
       <Dialog open={showUpgradeDialog} onOpenChange={(e, data) => setShowUpgradeDialog(data.open)}>
         <DialogSurface style={{ maxWidth: "480px" }}>
           <DialogBody>
-            <UpgradePro
-              onClose={() => setShowUpgradeDialog(false)}
-              onUpgradeSuccess={async () => {
-                // ✅ FIX: Fetch fresh data from server and update state
-                console.log("[App] onUpgradeSuccess called! Fetching fresh data...");
-                try {
-                  const [profileData, creditsData] = await Promise.all([
-                    getProfile(),
-                    getCredits(),
-                  ]);
-                  console.log("[App] Fresh data - plan:", creditsData?.plan);
-                  setUser(profileData);
-                  setCredits(creditsData);
-                } catch (error) {
-                  console.error("[App] Failed to refresh data:", error);
-                }
-              }}
-              currentPlan={credits?.plan}
-            />
+            <UpgradePro onClose={() => setShowUpgradeDialog(false)} currentPlan={credits?.plan} />
           </DialogBody>
         </DialogSurface>
       </Dialog>
