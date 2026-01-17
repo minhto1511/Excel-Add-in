@@ -75,8 +75,9 @@ async function apiCall(endpoint, options = {}, isRetry = false) {
       ...options,
     });
 
-    // Handle 401 - Try to refresh token
-    if (response.status === 401 && !isRetry) {
+    // Handle 401 - Try to refresh token (but NOT for login/register endpoints)
+    const isAuthEndpoint = endpoint.includes("/auth/login") || endpoint.includes("/auth/register");
+    if (response.status === 401 && !isRetry && !isAuthEndpoint) {
       console.log("[API] 401 detected, attempting token refresh...");
 
       // Get refresh token

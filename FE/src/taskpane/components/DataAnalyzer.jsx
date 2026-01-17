@@ -164,10 +164,19 @@ const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
               <div className="metrics-grid">
                 {analysis.keyMetrics.map((metric, idx) => (
                   <div key={idx} className="metric-card">
-                    <Text size={200} style={{ color: "#6b7280", marginBottom: "4px" }}>
+                    <Text
+                      size={200}
+                      className="d-block"
+                      style={{ color: "#6b7280", marginBottom: "8px" }}
+                    >
                       {metric.label}
                     </Text>
-                    <Text size={400} weight="semibold" style={{ color: "#111827" }}>
+                    <Text
+                      size={400}
+                      weight="semibold"
+                      className="d-block"
+                      style={{ color: "#111827" }}
+                    >
                       {metric.value}
                     </Text>
                   </div>

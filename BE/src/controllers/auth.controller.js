@@ -589,6 +589,15 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        error: "INVALID_EMAIL",
+        message: "Email không hợp lệ",
+      });
+    }
+
     // Always return success to prevent email enumeration
     const successResponse = {
       message: "Nếu email tồn tại, mã OTP sẽ được gửi đến hộp thư",
