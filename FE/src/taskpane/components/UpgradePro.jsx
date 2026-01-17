@@ -126,15 +126,19 @@ const UpgradePro = ({ onClose, currentPlan }) => {
 
   const startPolling = useCallback(
     (intentId) => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
 
       let pollCount = 0;
       const maxPolls = 120; // 120 * 3s = 6 minutes max polling time
-      let expiredCount = 0; // Track how many times we've seen expired
-      const maxExpiredPolls = 40; // Continue 2 more minutes after expired (40 * 3s)
+      let isProcessing = false; // Flag to prevent duplicate calls
 
-      // ✅ FIX: Extract check function so we can call it immediately
       const checkStatus = async () => {
+        // Prevent overlapping calls
+        if (isProcessing) return;
+        isProcessing = true;
+
         try {
           pollCount++;
           console.log(`[Polling ${pollCount}/${maxPolls}] Checking intent:`, intentId);
@@ -151,61 +155,46 @@ const UpgradePro = ({ onClose, currentPlan }) => {
             setStatus("paid");
 
             // Write to localStorage - App will poll and detect this
-            console.log("[Payment] Setting localStorage flag...");
             localStorage.setItem("payment_success", "true");
             localStorage.setItem("payment_timestamp", Date.now().toString());
 
             // Close dialog after 2 seconds
             setTimeout(() => {
-              console.log("[Payment] Closing dialog...");
               onClose?.();
             }, 2000);
-
-            return true; // Stop polling
-          }
-
-          if (statusData.status === "expired") {
-            expiredCount++;
-            console.log(
-              `[Polling] Expired (${expiredCount}/${maxExpiredPolls}), but continuing for webhook grace period...`
-            );
-
-            // ✅ FIX: Keep polling for 2 more minutes after expired
-            // This gives webhook time to process payment
-            if (expiredCount >= maxExpiredPolls) {
-              console.log("[Polling] Grace period ended, stopping");
-              clearInterval(pollingRef.current);
-              setStatus("expired");
-              return true; // Stop polling
-            }
+            return; // Stop polling
+          } else if (statusData.status === "expired") {
+            console.log("[Polling] Payment expired");
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+            setStatus("expired");
+            return; // Stop polling
           }
 
           // Stop polling after max attempts
           if (pollCount >= maxPolls) {
             console.log("[Polling] Max attempts reached, stopping");
             clearInterval(pollingRef.current);
+            pollingRef.current = null;
             setError("Hết thời gian chờ. Nếu đã thanh toán, vui lòng refresh trang.");
-            return true; // Stop polling
           }
-
-          return false; // Continue polling
         } catch (err) {
           console.error("[Polling] Error:", err);
           if (err.message?.includes("hết hạn") || err.message?.includes("401")) {
             clearInterval(pollingRef.current);
+            pollingRef.current = null;
             setError("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
             setStatus("error");
-            return true; // Stop polling
           }
-          return false; // Continue polling on other errors
+        } finally {
+          isProcessing = false;
         }
       };
 
-      // ✅ FIX: Call immediately on start (don't wait 3 seconds)
-      console.log("[Polling] Starting - checking immediately...");
+      // ✅ FIRST POLL IMMEDIATELY (fix for Office WebView)
       checkStatus();
 
-      // Then set up interval for subsequent checks
+      // ✅ THEN SET INTERVAL for subsequent polls
       pollingRef.current = setInterval(checkStatus, 3000);
     },
     [onClose]
