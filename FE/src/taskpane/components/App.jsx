@@ -285,7 +285,8 @@ const App = (props) => {
             <UpgradePro
               onClose={() => setShowUpgradeDialog(false)}
               onUpgradeSuccess={async () => {
-                // ✅ CRITICAL FIX: Fetch fresh data BEFORE closing dialog
+                // ✅ CRITICAL FIX: Fetch fresh data and update state
+                // UpgradePro will wait for this to complete before showing success
                 console.log("[App] Payment success! Refreshing user data...");
                 try {
                   const [profileData, creditsData] = await Promise.all([
@@ -310,9 +311,11 @@ const App = (props) => {
                       window.location.reload();
                     }, 1500);
                   }
+
+                  // Re-throw so UpgradePro knows there was an error
+                  throw error;
                 }
-                // Close dialog AFTER state is updated
-                setShowUpgradeDialog(false);
+                // NOTE: Dialog close is now handled by UpgradePro's auto-close
               }}
               currentPlan={credits?.plan}
             />

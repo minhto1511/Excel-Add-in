@@ -140,14 +140,28 @@ const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
           console.log(`[Polling ${pollCount}] Status:`, statusData.status);
 
           if (statusData.status === "paid") {
-            console.log("[Polling] Payment confirmed! Updating UI immediately...");
+            console.log("[Polling] Payment confirmed! Stopping polling...");
             clearInterval(pollingRef.current);
             pollingRef.current = null;
+
+            // ✅ CRITICAL FIX: Wait for parent to update state BEFORE showing success
+            console.log("[Polling] Calling onUpgradeSuccess and waiting...");
+            try {
+              await onUpgradeSuccess?.();
+              console.log("[Polling] onUpgradeSuccess completed successfully!");
+            } catch (err) {
+              console.error("[Polling] onUpgradeSuccess failed:", err);
+              // Still show success since payment actually succeeded
+            }
+
+            // Only set status to paid AFTER parent finished updating
             setStatus("paid");
 
-            // ✅ Call immediately - no setTimeout delay
-            console.log("[Polling] Calling onUpgradeSuccess NOW");
-            onUpgradeSuccess?.();
+            // Auto-close dialog after 2 seconds to show success message
+            setTimeout(() => {
+              console.log("[Polling] Auto-closing dialog...");
+              onClose?.();
+            }, 2000);
           } else if (statusData.status === "expired") {
             console.log("[Polling] Payment expired");
             clearInterval(pollingRef.current);
@@ -173,7 +187,7 @@ const UpgradePro = ({ onClose, onUpgradeSuccess, currentPlan }) => {
         }
       }, 3000); // Polling mỗi 3 giây
     },
-    [onUpgradeSuccess]
+    [onUpgradeSuccess, onClose]
   );
 
   const handleCopyCode = () => {
