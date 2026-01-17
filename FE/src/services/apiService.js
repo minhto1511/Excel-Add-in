@@ -302,30 +302,20 @@ export async function refreshAccessToken() {
 
 /**
  * Lấy thông tin profile
- * ✅ FIX: Add cache-buster to prevent Office WebView caching
  */
 export async function getProfile() {
+  // Add timestamp to bust cache
   const cacheBuster = `t=${Date.now()}`;
-  return apiCall(`/auth/profile?${cacheBuster}`, {
-    headers: {
-      "Cache-Control": "no-cache, no-store",
-      Pragma: "no-cache",
-    },
-  });
+  return apiCall(`/auth/profile?${cacheBuster}`);
 }
 
 /**
  * Lấy thông tin credits
- * ✅ FIX: Add cache-buster to prevent Office WebView caching
  */
 export async function getCredits() {
+  // Add timestamp to bust cache
   const cacheBuster = `t=${Date.now()}`;
-  return apiCall(`/users/credits?${cacheBuster}`, {
-    headers: {
-      "Cache-Control": "no-cache, no-store",
-      Pragma: "no-cache",
-    },
-  });
+  return apiCall(`/users/credits?${cacheBuster}`);
 }
 
 // ============================================================================
@@ -357,12 +347,7 @@ export async function createPaymentIntent(plan) {
 export async function getPaymentIntentStatus(intentId) {
   // Add timestamp to bust cache in Office WebView
   const cacheBuster = `t=${Date.now()}`;
-  return apiCall(`/payments/intents/${intentId}?${cacheBuster}`, {
-    headers: {
-      "Cache-Control": "no-cache, no-store",
-      Pragma: "no-cache",
-    },
-  });
+  return apiCall(`/payments/intents/${intentId}?${cacheBuster}`);
 }
 
 /**
