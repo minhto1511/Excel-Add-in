@@ -302,16 +302,30 @@ export async function refreshAccessToken() {
 
 /**
  * Lấy thông tin profile
+ * ✅ FIX: Add cache-buster to prevent Office WebView caching
  */
 export async function getProfile() {
-  return apiCall("/auth/profile");
+  const cacheBuster = `t=${Date.now()}`;
+  return apiCall(`/auth/profile?${cacheBuster}`, {
+    headers: {
+      "Cache-Control": "no-cache, no-store",
+      Pragma: "no-cache",
+    },
+  });
 }
 
 /**
  * Lấy thông tin credits
+ * ✅ FIX: Add cache-buster to prevent Office WebView caching
  */
 export async function getCredits() {
-  return apiCall("/users/credits");
+  const cacheBuster = `t=${Date.now()}`;
+  return apiCall(`/users/credits?${cacheBuster}`, {
+    headers: {
+      "Cache-Control": "no-cache, no-store",
+      Pragma: "no-cache",
+    },
+  });
 }
 
 // ============================================================================
