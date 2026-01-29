@@ -29,6 +29,7 @@ import {
   History24Regular,
   Star24Regular,
   Settings24Regular,
+  Code24Regular,
 } from "@fluentui/react-icons";
 
 // Components
@@ -40,6 +41,7 @@ import AuthPage from "./AuthPage";
 import History from "./History";
 import UpgradePro from "./UpgradePro";
 import AdminDashboard from "./admin/AdminDashboard";
+import VBAGenerator from "./VBAGenerator";
 
 // API Service
 import { isLoggedIn, getProfile, getCredits, logout } from "../../services/apiService";
@@ -278,6 +280,9 @@ const App = (props) => {
           <Tab value="stepbystep" icon={<Lightbulb24Regular />}>
             Hướng dẫn
           </Tab>
+          <Tab value="vba" icon={<Code24Regular />}>
+            VBA
+          </Tab>
           <Tab value="history" icon={<History24Regular />}>
             Lịch sử
           </Tab>
@@ -300,6 +305,12 @@ const App = (props) => {
         )}
         {selectedTab === "stepbystep" && (
           <StepByStepGuide
+            disabled={user?.role !== "admin" && credits?.plan !== "pro" && credits?.credits <= 0}
+            onRequestComplete={refreshCredits}
+          />
+        )}
+        {selectedTab === "vba" && (
+          <VBAGenerator
             disabled={user?.role !== "admin" && credits?.plan !== "pro" && credits?.credits <= 0}
             onRequestComplete={refreshCredits}
           />

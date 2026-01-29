@@ -129,7 +129,7 @@ async function callGenerateContent(modelName, payload, options = {}) {
 
   const apiKey = getApiKey();
   const url = `${GEMINI_BASE_URL}/models/${modelName}:generateContent?key=${encodeURIComponent(
-    apiKey
+    apiKey,
   )}`;
 
   try {
@@ -168,7 +168,7 @@ async function callGenerateContent(modelName, payload, options = {}) {
           console.warn(
             `⚠️ API error ${errorCode}. Retrying in ${delay}ms... (${
               retryCount + 1
-            }/${MAX_RETRIES})`
+            }/${MAX_RETRIES})`,
           );
           await new Promise((resolve) => setTimeout(resolve, delay));
           return callGenerateContent(modelName, payload, {
@@ -314,6 +314,60 @@ TRẢ VỀ JSON:
   ]
 }`;
 
+const VBA_SYSTEM_PROMPT = `Bạn là CHUYÊN GIA VBA/MACRO lập trình Excel với 15 năm kinh nghiệm.
+
+NHIỆM VỤ:
+- Viết code VBA hoàn chỉnh, có thể chạy ngay
+- Code phải có comments giải thích
+- Xử lý errors (On Error)
+- Tương thích Excel 2016+
+
+QUY TẮC CODE:
+1. Sub/Function phải có tên rõ ràng
+2. Declare biến (Dim) đầy đủ
+3. Dùng With...End With để tối ưu
+4. Có MsgBox thông báo hoàn thành
+5. Xử lý ActiveSheet/ActiveWorkbook an toàn
+
+VÍ DỤ OUTPUT:
+\`\`\`vba
+Sub HighlightEvenRows()
+    ' Tô màu các hàng chẵn
+    Dim ws As Worksheet
+    Dim lastRow As Long
+    Dim i As Long
+    
+    On Error GoTo ErrorHandler
+    
+    Set ws = ActiveSheet
+    lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+    
+    For i = 2 To lastRow Step 2
+        ws.Rows(i).Interior.Color = RGB(220, 230, 241)
+    Next i
+    
+    MsgBox "Đã tô màu " & (lastRow \\ 2) & " hàng chẵn!", vbInformation
+    Exit Sub
+    
+ErrorHandler:
+    MsgBox "Lỗi: " & Err.Description, vbCritical
+End Sub
+\`\`\`
+
+TRẢ VỀ JSON:
+{
+  "macroName": "Tên macro ngắn gọn",
+  "description": "Mô tả chức năng",
+  "code": "// Code VBA đầy đủ, có comments",
+  "howToUse": ["Bước 1", "Bước 2", "..."],
+  "warnings": ["Cảnh báo 1 (nếu có)"]
+}
+
+TUYỆT ĐỐI KHÔNG:
+- Code thiếu Sub/End Sub
+- Code không chạy được
+- Không xử lý lỗi`;
+
 // ============================================================================
 // PUBLIC API
 // ============================================================================
@@ -327,7 +381,7 @@ TRẢ VỀ JSON:
 export async function generateFormula(
   prompt,
   excelContext = null,
-  options = {}
+  options = {},
 ) {
   const model = await ensureModel();
 
@@ -528,6 +582,82 @@ export async function generateGuide(task, options = {}) {
     }
 
     throw new Error("Không thể trích xuất hướng dẫn. Thử mô tả ngắn gọn hơn!");
+  }
+}
+
+/**
+ * Generate VBA/Macro code from description
+ * @param {string} description - User's description of what the macro should do
+ * @param {object} excelContext - Excel context data (optional)
+ * @param {object} options - { signal }
+ */
+export async function generateVBA(
+  description,
+  excelContext = null,
+  options = {},
+) {
+  if (!description || !description.trim()) {
+    throw new Error("Mô tả macro không được rỗng!");
+  }
+
+  const model = await ensureModel();
+
+  let userPrompt = `Yêu cầu: ${description}`;
+
+  if (excelContext) {
+    userPrompt = formatContextForPrompt(excelContext) + userPrompt;
+  }
+
+  const payload = {
+    contents: [
+      {
+        parts: [
+          {
+            text: `${VBA_SYSTEM_PROMPT}\n\n${userPrompt}`,
+          },
+        ],
+      },
+    ],
+    generationConfig: {
+      temperature: 0.2,
+      maxOutputTokens: 8192,
+    },
+  };
+
+  const result = await callGenerateContent(model, payload, options);
+  const cleanText = cleanJSONResponse(result.text);
+
+  try {
+    const parsed = JSON.parse(cleanText);
+    if (!parsed.code || !parsed.macroName) {
+      throw new Error("Invalid VBA response structure");
+    }
+    return parsed;
+  } catch (error) {
+    console.warn("JSON Parse failed for VBA, attempting code extraction...");
+
+    // Fallback: Tìm code VBA trong raw text
+    const codeMatch =
+      result.text.match(/```vba([\s\S]*?)```/i) ||
+      result.text.match(/```([\s\S]*?)```/) ||
+      result.text.match(/(Sub\s+\w+[\s\S]*?End Sub)/i);
+
+    if (codeMatch && codeMatch[1]) {
+      return {
+        macroName: "GeneratedMacro",
+        description: description,
+        code: codeMatch[1].trim(),
+        howToUse: [
+          "Mở VBA Editor (Alt+F11)",
+          "Insert → Module",
+          "Paste code vào module",
+          "Chạy macro (F5)",
+        ],
+        warnings: [],
+      };
+    }
+
+    throw new Error("Không thể tạo VBA code. Thử mô tả cụ thể hơn!");
   }
 }
 

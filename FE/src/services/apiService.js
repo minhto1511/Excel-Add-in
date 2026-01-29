@@ -430,6 +430,28 @@ export async function generateStepByStep(task) {
   return data.result;
 }
 
+/**
+ * Generate VBA/Macro code từ mô tả
+ * Gọi BE endpoint: POST /api/v1/ai/ask với type="vba"
+ */
+export async function generateVBACode(description, excelContext = null) {
+  if (!description || !description.trim()) {
+    throw new Error("Mô tả macro không được rỗng!");
+  }
+
+  const data = await apiCall("/ai/ask", {
+    method: "POST",
+    body: JSON.stringify({
+      type: "vba",
+      prompt: description,
+      excelContext,
+    }),
+  });
+
+  // Backend trả về { result: {...}, cached, creditsRemaining }
+  return data.result;
+}
+
 // ============================================================================
 // AI HISTORY
 // ============================================================================

@@ -33,18 +33,18 @@ export const askAI = async (req, res) => {
     if (!type) {
       return res
         .status(400)
-        .json({ message: "Thiếu type (formula/analysis/guide)" });
+        .json({ message: "Thiếu type (formula/analysis/guide/vba)" });
     }
 
-    if (!["formula", "analysis", "guide"].includes(type)) {
+    if (!["formula", "analysis", "guide", "vba"].includes(type)) {
       return res.status(400).json({
-        message: "Type không hợp lệ. Chấp nhận: formula, analysis, guide",
+        message: "Type không hợp lệ. Chấp nhận: formula, analysis, guide, vba",
       });
     }
 
-    // Validate prompt for formula and guide
+    // Validate prompt for formula, guide, and vba
     if (
-      (type === "formula" || type === "guide") &&
+      (type === "formula" || type === "guide" || type === "vba") &&
       (!prompt || !prompt.trim())
     ) {
       return res.status(400).json({ message: "Thiếu prompt" });
@@ -53,7 +53,7 @@ export const askAI = async (req, res) => {
     // ============================================
     // VALIDATE PROMPT QUALITY - Tránh lãng phí credits
     // ============================================
-    if (type === "formula" || type === "guide") {
+    if (type === "formula" || type === "guide" || type === "vba") {
       // Chuẩn hóa: lowercase, bỏ dấu câu, trim
       const cleanPrompt = prompt
         .trim()
@@ -100,7 +100,7 @@ export const askAI = async (req, res) => {
       // Kiểm tra prompt mơ hồ - CHỈ EXACT MATCH, không dùng startsWith nữa
       // Prompt dài và chi tiết sẽ được chấp nhận
       const isVague = vagueExactPrompts.some(
-        (vague) => cleanPrompt === vague || cleanPrompt === vague + " đi"
+        (vague) => cleanPrompt === vague || cleanPrompt === vague + " đi",
       );
 
       if (isVague) {
@@ -126,7 +126,7 @@ export const askAI = async (req, res) => {
     const cached = await AIHistory.findCached(
       type,
       prompt || "analysis",
-      excelContext
+      excelContext,
     );
     if (cached) {
       return res.status(200).json({
@@ -159,7 +159,7 @@ export const askAI = async (req, res) => {
           aiResult = await geminiService.generateFormula(
             prompt,
             excelContext,
-            options
+            options,
           );
           break;
         case "analysis":
@@ -167,6 +167,13 @@ export const askAI = async (req, res) => {
           break;
         case "guide":
           aiResult = await geminiService.generateGuide(prompt, options);
+          break;
+        case "vba":
+          aiResult = await geminiService.generateVBA(
+            prompt,
+            excelContext,
+            options,
+          );
           break;
       }
     } catch (aiError) {
