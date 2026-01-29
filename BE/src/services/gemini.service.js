@@ -366,7 +366,8 @@ TRẢ VỀ JSON:
 TUYỆT ĐỐI KHÔNG:
 - Code thiếu Sub/End Sub
 - Code không chạy được
-- Không xử lý lỗi`;
+- Không xử lý lỗi
+- TUYỆT ĐỐI KHÔNG dùng emoji trong comments hay MsgBox`;
 
 // ============================================================================
 // PUBLIC API
@@ -600,64 +601,81 @@ export async function generateVBA(
     throw new Error("Mô tả macro không được rỗng!");
   }
 
-  const model = await ensureModel();
-
-  let userPrompt = `Yêu cầu: ${description}`;
-
-  if (excelContext) {
-    userPrompt = formatContextForPrompt(excelContext) + userPrompt;
-  }
-
-  const payload = {
-    contents: [
-      {
-        parts: [
-          {
-            text: `${VBA_SYSTEM_PROMPT}\n\n${userPrompt}`,
-          },
-        ],
-      },
-    ],
-    generationConfig: {
-      temperature: 0.2,
-      maxOutputTokens: 8192,
-    },
-  };
-
-  const result = await callGenerateContent(model, payload, options);
-  const cleanText = cleanJSONResponse(result.text);
+  console.log("📝 Generating VBA for:", description.substring(0, 50));
 
   try {
-    const parsed = JSON.parse(cleanText);
-    if (!parsed.code || !parsed.macroName) {
-      throw new Error("Invalid VBA response structure");
-    }
-    return parsed;
-  } catch (error) {
-    console.warn("JSON Parse failed for VBA, attempting code extraction...");
+    const model = await ensureModel();
 
-    // Fallback: Tìm code VBA trong raw text
-    const codeMatch =
-      result.text.match(/```vba([\s\S]*?)```/i) ||
-      result.text.match(/```([\s\S]*?)```/) ||
-      result.text.match(/(Sub\s+\w+[\s\S]*?End Sub)/i);
+    let userPrompt = `Yêu cầu: ${description}`;
 
-    if (codeMatch && codeMatch[1]) {
-      return {
-        macroName: "GeneratedMacro",
-        description: description,
-        code: codeMatch[1].trim(),
-        howToUse: [
-          "Mở VBA Editor (Alt+F11)",
-          "Insert → Module",
-          "Paste code vào module",
-          "Chạy macro (F5)",
-        ],
-        warnings: [],
-      };
+    // VBA chỉ cần structure info, không cần sample data (tránh timeout)
+    if (excelContext) {
+      console.log("📊 Excel context detected, formatting lightweight...");
+      try {
+        userPrompt = formatLightweightContext(excelContext) + userPrompt;
+      } catch (ctxErr) {
+        console.error("❌ Error formatting VBA context:", ctxErr);
+        // Continue even if context formatting fails
+      }
     }
 
-    throw new Error("Không thể tạo VBA code. Thử mô tả cụ thể hơn!");
+    const payload = {
+      contents: [
+        {
+          parts: [
+            {
+              text: `${VBA_SYSTEM_PROMPT}\n\n${userPrompt}`,
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 8192,
+      },
+    };
+
+    console.log("🚀 Calling Gemini for VBA...");
+    const result = await callGenerateContent(model, payload, options);
+    const cleanText = cleanJSONResponse(result.text);
+
+    try {
+      const parsed = JSON.parse(cleanText);
+      if (!parsed.code || !parsed.macroName) {
+        throw new Error("Invalid VBA response structure");
+      }
+      console.log("✅ VBA generated successfully!");
+      return parsed;
+    } catch (error) {
+      console.warn("JSON Parse failed for VBA, attempting code extraction...");
+
+      // Fallback: Tìm code VBA trong raw text
+      const codeMatch =
+        result.text.match(/```vba([\s\S]*?)```/i) ||
+        result.text.match(/```([\s\S]*?)```/) ||
+        result.text.match(/(Sub\s+\w+[\s\S]*?End Sub)/i);
+
+      if (codeMatch && codeMatch[1]) {
+        console.log("✅ VBA extracted via fallback!");
+        return {
+          macroName: "GeneratedMacro",
+          description: description,
+          code: codeMatch[1].trim(),
+          howToUse: [
+            "Mở VBA Editor (Alt+F11)",
+            "Insert → Module",
+            "Paste code vào module",
+            "Chạy macro (F5)",
+          ],
+          warnings: [],
+        };
+      }
+
+      throw new Error("Không thể tạo VBA code. Thử mô tả cụ thể hơn!");
+    }
+  } catch (err) {
+    console.error("❌ generateVBA main error:", err);
+    throw err; // Re-throw to be caught by controller
   }
 }
 
@@ -695,8 +713,8 @@ function formatContextForPrompt(context) {
   if (context.columns && context.columns.length > 0) {
     contextText += "CẤU TRÚC CỘT (với địa chỉ thực tế):\n";
     context.columns.forEach((col) => {
-      if (col.hasData) {
-        contextText += `  - Cột ${col.column} "${col.name}": ${col.type}`;
+      if (col && col.hasData) {
+        contextText += `  - Cột ${col.column || "?"} "${col.name || "Untitled"}": ${col.type || "unknown"}`;
         // Thêm data range thực tế
         if (col.dataRange) {
           contextText += ` [Range: ${col.dataRange}]`;
@@ -713,8 +731,11 @@ function formatContextForPrompt(context) {
   if (context.rawDataPreview && context.rawDataPreview.length > 0) {
     contextText += `\nDỮ LIỆU VỚI ĐỊA CHỈ Ô:\n`;
     context.rawDataPreview.forEach((rowData) => {
+      if (!rowData) return;
       contextText += `  Hàng ${rowData.row}: `;
-      const cells = Object.entries(rowData.cells).slice(0, 5);
+      const cells = rowData.cells
+        ? Object.entries(rowData.cells).slice(0, 5)
+        : [];
       contextText += cells.map(([addr, val]) => `${addr}="${val}"`).join(", ");
       contextText += "\n";
     });
@@ -723,6 +744,7 @@ function formatContextForPrompt(context) {
     const startRow = context.startRow || 1;
     contextText += `\nDỮ LIỆU MẪU:\n`;
     context.sampleData.forEach((row) => {
+      if (!row) return;
       const rowNum = row._rowNumber || "?";
       contextText += `  Hàng ${rowNum}: `;
       const entries = Object.entries(row)
@@ -737,8 +759,10 @@ function formatContextForPrompt(context) {
   if (context.namedTables && context.namedTables.length > 0) {
     contextText += `\nNAMED TABLES (Excel Tables):\n`;
     context.namedTables.forEach((table) => {
+      if (!table) return;
+      const cols = table.columns ? table.columns.join(", ") : "unknown";
       contextText += `  - Table "${table.name}":\n`;
-      contextText += `    Columns: ${table.columns.join(", ")}\n`;
+      contextText += `    Columns: ${cols}\n`;
       contextText += `    Data Range: ${table.dataRange} (${table.rowCount} rows)\n`;
       contextText += `    Có thể dùng: ${table.name}[ColumnName] trong công thức\n`;
     });
@@ -747,6 +771,78 @@ function formatContextForPrompt(context) {
 
   contextText +=
     "═══════════════════════════════════════════════════════════════════\n\n";
+
+  return contextText;
+}
+
+/**
+ * Format lightweight context cho VBA - chỉ structure, không data
+ * Giúp giảm token count và tránh timeout
+ */
+function formatLightweightContext(context) {
+  if (!context) return "";
+
+  let contextText = "\nEXCEL STRUCTURE INFO:\n";
+  contextText += "───────────────────────────────────────\n";
+
+  try {
+    // Basic info
+    contextText += `Sheet: ${context.sheetName || "Sheet1"}\n`;
+    contextText += `Data Range: ${context.usedRange || "A1:?"}\n`;
+    contextText += `Size: ${context.rowCount || "?"} rows × ${context.columnCount || "?"} cols\n`;
+
+    // Headers only (max 15)
+    if (
+      context.headers &&
+      Array.isArray(context.headers) &&
+      context.headers.length > 0
+    ) {
+      const headers = context.headers.slice(0, 15);
+      contextText += `Columns: ${headers.join(", ")}${context.headers.length > 15 ? "..." : ""}\n`;
+    }
+
+    // Column types (without sample data)
+    if (
+      context.columns &&
+      Array.isArray(context.columns) &&
+      context.columns.length > 0
+    ) {
+      const colTypes = context.columns
+        .filter((c) => c && c.hasData)
+        .slice(0, 10)
+        .map(
+          (c) =>
+            `${c.column || "?"}:${c.name || "Untitled"}(${c.type || "unknown"})`,
+        )
+        .join(", ");
+      if (colTypes) {
+        contextText += `Column Types: ${colTypes}\n`;
+      }
+    }
+
+    // Named Tables (important for VBA)
+    if (
+      context.namedTables &&
+      Array.isArray(context.namedTables) &&
+      context.namedTables.length > 0
+    ) {
+      contextText += `\nNamed Tables:\n`;
+      context.namedTables.forEach((table) => {
+        if (!table) return;
+        const cols = table.columns
+          ? table.columns.slice(0, 8).join(", ")
+          : "unknown";
+        contextText += `  - ${table.name || "Table"}: ${cols}${
+          table.columns && table.columns.length > 8 ? "..." : ""
+        } (${table.rowCount || "?"} rows)\n`;
+      });
+    }
+  } catch (err) {
+    console.error("❌ Error in formatLightweightContext:", err);
+    contextText += "[Error extracting full structure info]\n";
+  }
+
+  contextText += "───────────────────────────────────────\n\n";
 
   return contextText;
 }

@@ -194,95 +194,105 @@ const VBAGenerator = ({ disabled = false, onRequestComplete }) => {
 
       {/* VBA Result */}
       {result && (
-        <Card className="card">
-          <Text weight="semibold" size={400} className="d-block mb-12">
-            🎯 {result.macroName || "Macro đã tạo"}
-          </Text>
+        <div className="vba-result-container animate-fade-in">
+          <Card className="card mb-16">
+            <div className="d-flex justify-between align-center mb-12">
+              <Text weight="semibold" size={500} style={{ color: "#107C10" }}>
+                ✅ Đã tạo code xong!
+              </Text>
+              <Button
+                appearance="primary"
+                icon={copied ? <Checkmark24Regular /> : <Copy24Regular />}
+                onClick={handleCopy}
+                size="large"
+                className={copied ? "btn-success" : ""}
+              >
+                {copied ? "Đã copy" : "Copy Code"}
+              </Button>
+            </div>
 
-          {result.description && (
-            <Text size={300} className="d-block mb-12" style={{ color: "#666" }}>
-              {result.description}
+            <Text size={300} className="mb-12 d-block">
+              {result.description || "Dưới đây là đoạn code VBA để thực hiện yêu cầu của bạn."}
             </Text>
-          )}
 
-          {/* VBA Code Box */}
-          <div className="vba-code-box">
-            <pre
-              style={{
-                margin: 0,
-                padding: "16px",
-                background: "#1e1e1e",
-                color: "#d4d4d4",
-                borderRadius: "8px",
-                overflow: "auto",
-                fontSize: "13px",
-                lineHeight: "1.5",
-                fontFamily: "Consolas, Monaco, 'Courier New', monospace",
-              }}
-            >
-              {result.code}
-            </pre>
-          </div>
-
-          <div className="button-group" style={{ marginTop: "16px" }}>
-            <Button
-              appearance="primary"
-              icon={copied ? <Checkmark24Regular /> : <Copy24Regular />}
-              onClick={handleCopy}
-              className="btn-primary"
-            >
-              {copied ? "Đã sao chép!" : "Copy Code"}
-            </Button>
-          </div>
-
-          {/* How to Use */}
-          {result.howToUse && result.howToUse.length > 0 && (
-            <div
-              className="howto-box"
-              style={{
-                marginTop: "16px",
-                padding: "12px",
-                background: "#f0f9ff",
-                borderRadius: "8px",
-              }}
-            >
-              <Text weight="semibold" size={300} style={{ color: "#0078d4" }}>
-                📝 Cách sử dụng:
-              </Text>
-              <ol style={{ margin: "8px 0 0 16px", padding: 0 }}>
-                {result.howToUse.map((step, idx) => (
-                  <li key={idx} style={{ marginBottom: "4px" }}>
-                    <Text size={200}>{step}</Text>
-                  </li>
-                ))}
-              </ol>
+            {/* VBA Code Box */}
+            <div className="vba-code-box">
+              <div className="vba-code-header">VBA Module</div>
+              <pre className="vba-pre">{result.code}</pre>
             </div>
-          )}
+          </Card>
 
-          {/* Warnings */}
-          {result.warnings && result.warnings.length > 0 && (
-            <div
-              className="warning-box"
-              style={{
-                marginTop: "12px",
-                padding: "12px",
-                background: "#fff4e5",
-                borderRadius: "8px",
-              }}
-            >
-              <Text weight="semibold" size={300} style={{ color: "#d97706" }}>
-                <Warning24Regular style={{ verticalAlign: "middle" }} /> Lưu ý:
-              </Text>
-              <ul style={{ margin: "8px 0 0 16px", padding: 0 }}>
-                {result.warnings.map((warn, idx) => (
-                  <li key={idx} style={{ marginBottom: "4px" }}>
-                    <Text size={200}>{warn}</Text>
-                  </li>
-                ))}
-              </ul>
+          {/* User Guide */}
+          <Card className="card guide-card">
+            <Text weight="bold" size={400} className="mb-12 d-block">
+              🚀 Hướng dẫn chạy nhanh:
+            </Text>
+
+            <div className="guide-steps">
+              <div className="guide-step">
+                <div className="step-number">1</div>
+                <div className="guide-step-content">
+                  <Text weight="semibold">Mở cửa sổ code</Text>
+                  <div className="shortcut-box">
+                    <span className="key">Alt</span> + <span className="key">F11</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="guide-step">
+                <div className="step-number">2</div>
+                <div className="guide-step-content">
+                  <Text weight="semibold">Tạo module mới</Text>
+                  <Text size={200}>
+                    Menu <b>Insert</b> → <b>Module</b>
+                  </Text>
+                </div>
+              </div>
+
+              <div className="guide-step">
+                <div className="step-number">3</div>
+                <div className="guide-step-content">
+                  <Text weight="semibold">Dán & Chạy</Text>
+                  <div className="shortcut-box">
+                    <span className="key">Ctrl</span> + <span className="key">V</span>
+                  </div>
+                  <div className="shortcut-box mt-4">
+                    <span className="key">F5</span> để chạy
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
-        </Card>
+
+            {/* Custom AI Steps/Warnings */}
+            {(result.howToUse || result.warnings) && (
+              <div className="ai-notes mt-16">
+                {result.howToUse && result.howToUse.length > 0 && (
+                  <div className="mb-8">
+                    <Text weight="semibold">💡 Lưu ý từ AI:</Text>
+                    <ul className="msg-list">
+                      {result.howToUse.map((step, idx) => (
+                        <li key={idx}>{step}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {result.warnings && result.warnings.length > 0 && (
+                  <div>
+                    <Text weight="semibold" style={{ color: "#d13438" }}>
+                      ⚠️ Cảnh báo:
+                    </Text>
+                    <ul className="msg-list warning">
+                      {result.warnings.map((warn, idx) => (
+                        <li key={idx}>{warn}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
+        </div>
       )}
 
       {/* Empty State */}

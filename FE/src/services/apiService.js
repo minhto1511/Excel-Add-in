@@ -19,10 +19,10 @@ import { getExcelContext as getExcelContextFromService } from "./excelContextSer
 // ============================================================================
 
 // Backend API URL - Auto-detect local vs production
-// Local: có thể dùng Ngrok (đổi URL bên dưới) hoặc localhost nếu BE có SSL
+// Local: dùng Ngrok để có HTTPS (vì BE local không có SSL)
 const API_BASE_URL =
   window.location.hostname === "localhost"
-    ? "https://excel-add-in-production-141f.up.railway.app/api/v1" // Tạm dùng production cho local
+    ? "https://broodier-unsistered-orlando.ngrok-free.dev/api/v1"
     : "https://excel-add-in-production-141f.up.railway.app/api/v1";
 
 /**
@@ -652,6 +652,7 @@ export default {
   generateExcelFormula,
   analyzeExcelData,
   generateStepByStep,
+  generateVBACode,
 
   // AI History
   getAIHistory,

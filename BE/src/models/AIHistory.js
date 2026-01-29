@@ -12,7 +12,7 @@ const aiHistorySchema = new Schema(
 
     type: {
       type: String,
-      enum: ["formula", "analysis", "guide"],
+      enum: ["formula", "analysis", "guide", "vba"],
       required: true,
       index: true,
     },
@@ -48,7 +48,7 @@ const aiHistorySchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Compound indexes
@@ -57,7 +57,7 @@ aiHistorySchema.index({ userId: 1, type: 1, createdAt: -1 });
 // TTL index: auto-delete records older than 90 days
 aiHistorySchema.index(
   { createdAt: 1 },
-  { expireAfterSeconds: 90 * 24 * 60 * 60 }
+  { expireAfterSeconds: 90 * 24 * 60 * 60 },
 );
 
 // Pre-save hook: Generate contextHash
@@ -79,7 +79,7 @@ aiHistorySchema.pre("save", function () {
 aiHistorySchema.statics.findCached = async function (
   type,
   prompt,
-  excelContext
+  excelContext,
 ) {
   const hashInput = JSON.stringify({ prompt, type, context: excelContext });
   const hash = crypto.createHash("md5").update(hashInput).digest("hex");

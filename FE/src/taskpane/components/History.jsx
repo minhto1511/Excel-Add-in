@@ -5,19 +5,34 @@
 
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { Button, Card, Text, Spinner } from "@fluentui/react-components";
+import {
+  Button,
+  Card,
+  Text,
+  Spinner,
+  Dialog,
+  DialogSurface,
+  DialogBody,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from "@fluentui/react-components";
 import {
   History24Regular,
   Delete24Regular,
   Sparkle24Regular,
   DataUsage24Regular,
   Lightbulb24Regular,
+  Code24Regular,
+  Copy24Regular,
+  Dismiss24Regular,
 } from "@fluentui/react-icons";
 
 // API Service
 import { getAIHistory, deleteAIHistory } from "../../services/apiService";
 
 const History = () => {
+  const [selectedItem, setSelectedItem] = useState(null);
   const [histories, setHistories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("all");
@@ -74,6 +89,8 @@ const History = () => {
         return <DataUsage24Regular />;
       case "guide":
         return <Lightbulb24Regular />;
+      case "vba":
+        return <Code24Regular />;
       default:
         return <History24Regular />;
     }
@@ -87,6 +104,8 @@ const History = () => {
         return "Phân tích";
       case "guide":
         return "Hướng dẫn";
+      case "vba":
+        return "VBA/Macro";
       default:
         return type;
     }
@@ -107,6 +126,10 @@ const History = () => {
 
     if (item.type === "guide") {
       return result.taskName || "Không có tiêu đề";
+    }
+
+    if (item.type === "vba") {
+      return result.macroName ? `${result.macroName} - ${result.description}` : "VBA Code";
     }
 
     return "Xem chi tiết";
@@ -158,6 +181,14 @@ const History = () => {
           >
             Hướng dẫn
           </Button>
+          <Button
+            appearance={filter === "vba" ? "primary" : "secondary"}
+            onClick={() => setFilter("vba")}
+            icon={<Code24Regular />}
+            size="small"
+          >
+            VBA
+          </Button>
         </div>
       </Card>
 
@@ -187,7 +218,12 @@ const History = () => {
       {!loading && histories.length > 0 && (
         <>
           {histories.map((item) => (
-            <Card key={item._id} className="card">
+            <Card
+              key={item._id}
+              className="card"
+              style={{ cursor: "pointer" }}
+              onClick={() => setSelectedItem(item)}
+            >
               <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                 <div style={{ color: "#0078d4", flexShrink: 0 }}>{getTypeIcon(item.type)}</div>
                 <div style={{ flex: 1 }}>
@@ -211,7 +247,10 @@ const History = () => {
                     <Button
                       appearance="subtle"
                       icon={<Delete24Regular />}
-                      onClick={() => handleDelete(item._id)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent opening dialog
+                        handleDelete(item._id);
+                      }}
                       size="small"
                     />
                   </div>
@@ -274,6 +313,110 @@ const History = () => {
           )}
         </>
       )}
+      {/* Detail Dialog */}
+      <Dialog open={!!selectedItem} onOpenChange={(e, data) => !data.open && setSelectedItem(null)}>
+        <DialogSurface style={{ maxWidth: "600px", width: "90%" }}>
+          <DialogBody>
+            <DialogTitle
+              action={
+                <Button
+                  appearance="subtle"
+                  icon={<Dismiss24Regular />}
+                  onClick={() => setSelectedItem(null)}
+                />
+              }
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {selectedItem && getTypeIcon(selectedItem.type)}
+                {selectedItem && getTypeLabel(selectedItem.type)}
+              </div>
+            </DialogTitle>
+
+            <DialogContent>
+              {selectedItem && (
+                <div style={{ marginTop: "16px" }}>
+                  <Text weight="semibold" className="d-block mb-8">
+                    Yêu cầu gốc:
+                  </Text>
+                  <div
+                    className="mb-16"
+                    style={{ padding: "12px", background: "#f3f4f6", borderRadius: "8px" }}
+                  >
+                    {selectedItem.input.prompt}
+                  </div>
+
+                  {selectedItem.type === "vba" && selectedItem.output?.result?.code && (
+                    <>
+                      <div className="d-flex justify-between align-center mb-8">
+                        <Text weight="semibold">VBA Code:</Text>
+                        <Button
+                          appearance="outline"
+                          icon={<Copy24Regular />}
+                          size="small"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedItem.output.result.code);
+                          }}
+                        >
+                          Copy
+                        </Button>
+                      </div>
+                      <div className="vba-code-box">
+                        <pre className="vba-pre" style={{ maxHeight: "300px" }}>
+                          {selectedItem.output.result.code}
+                        </pre>
+                      </div>
+                    </>
+                  )}
+
+                  {selectedItem.type === "formula" && (
+                    <>
+                      <Text weight="semibold" className="d-block mb-8">
+                        Công thức:
+                      </Text>
+                      <div className="formula-box">
+                        {selectedItem.output?.result?.formula || "N/A"}
+                      </div>
+                      <Text className="d-block mt-12">
+                        {selectedItem.output?.result?.explanation}
+                      </Text>
+                    </>
+                  )}
+
+                  {selectedItem.type === "analysis" && (
+                    <>
+                      <Text weight="semibold" className="d-block mb-8">
+                        Kết quả phân tích:
+                      </Text>
+                      <Text>{selectedItem.output?.result?.summary || "N/A"}</Text>
+                    </>
+                  )}
+
+                  {selectedItem.type === "guide" && (
+                    <>
+                      <Text weight="semibold" className="d-block mb-8">
+                        {selectedItem.output?.result?.taskName}
+                      </Text>
+                      <ul>
+                        {selectedItem.output?.result?.steps?.map((step, idx) => (
+                          <li key={idx}>
+                            <strong>{step.title}:</strong> {step.description}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              )}
+            </DialogContent>
+
+            <DialogActions>
+              <Button appearance="secondary" onClick={() => setSelectedItem(null)}>
+                Đóng
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </div>
   );
 };
