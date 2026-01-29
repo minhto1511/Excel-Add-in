@@ -5,6 +5,7 @@ import {
   getPaymentHistory,
   getPricing,
   handleCassoWebhook,
+  handleSePayWebhook,
   handleVNPayWebhook,
   getUnmatchedTransactions,
   manualMatchTransaction,
@@ -23,6 +24,9 @@ router.post("/webhook-event-handler", handleCassoWebhook);
 // Casso webhook (alternative path)
 router.post("/webhook/casso", handleCassoWebhook);
 
+// SePay webhook
+router.post("/webhook/sepay", handleSePayWebhook);
+
 // VNPay webhook (placeholder)
 router.post("/webhook/vnpay", handleVNPayWebhook);
 
@@ -38,7 +42,7 @@ router.post(
   "/intents",
   authMiddleware,
   paymentIntentLimiter,
-  createPaymentIntent
+  createPaymentIntent,
 );
 
 // Get payment intent status (for polling)

@@ -18,8 +18,12 @@ import { getExcelContext as getExcelContextFromService } from "./excelContextSer
 // API CONFIGURATION
 // ============================================================================
 
-// Backend API URL - Production
-const API_BASE_URL = "https://excel-add-in-production-141f.up.railway.app/api/v1";
+// Backend API URL - Auto-detect local vs production
+// Local: có thể dùng Ngrok (đổi URL bên dưới) hoặc localhost nếu BE có SSL
+const API_BASE_URL =
+  window.location.hostname === "localhost"
+    ? "https://excel-add-in-production-141f.up.railway.app/api/v1" // Tạm dùng production cho local
+    : "https://excel-add-in-production-141f.up.railway.app/api/v1";
 
 /**
  * Lấy JWT token từ localStorage
@@ -62,6 +66,7 @@ async function apiCall(endpoint, options = {}, isRetry = false) {
     const token = getAuthToken();
     const headers = {
       "Content-Type": "application/json",
+      "ngrok-skip-browser-warning": "true",
       ...options.headers,
     };
 

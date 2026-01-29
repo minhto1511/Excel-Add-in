@@ -208,11 +208,11 @@ class PaymentService {
         console.error("Received:", signature.substring(0, 30) + "...");
         console.error(
           "Computed (m1 SHA256):",
-          computed1.substring(0, 30) + "..."
+          computed1.substring(0, 30) + "...",
         );
         console.error(
           "Computed (m2 SHA512):",
-          computed2.substring(0, 30) + "..."
+          computed2.substring(0, 30) + "...",
         );
         console.error("RawBody preview:", rawBody.substring(0, 100) + "...");
         return false;
@@ -228,6 +228,30 @@ class PaymentService {
       console.error("Signature verification error:", error);
       return false;
     }
+  }
+
+  // Verify SePay API Key (Webhook Auth)
+  verifySePaySignature(authHeader) {
+    const apiKey = process.env.SEPAY_API_KEY;
+
+    if (!apiKey) {
+      console.warn("SEPAY_API_KEY not configured");
+      return true; // Skip if not configured (dev mode)
+    }
+
+    if (!authHeader) {
+      if (process.env.NODE_ENV === "production") {
+        console.error(
+          "No authorization header provided for SePay in production",
+        );
+        return false;
+      }
+      return true;
+    }
+
+    // SePay sends: "Apikey YOUR_API_KEY"
+    const providedKey = authHeader.replace("Apikey ", "").trim();
+    return providedKey === apiKey;
   }
 
   // Process Casso webhook
@@ -291,8 +315,8 @@ class PaymentService {
       log.processingStatus = results.every((r) => r.status === "success")
         ? "processed"
         : results.some((r) => r.status === "unmatched")
-        ? "unmatched"
-        : "failed";
+          ? "unmatched"
+          : "failed";
       log.results = results;
       log.responseTime = Date.now() - startTime;
       await log.save();
@@ -306,6 +330,175 @@ class PaymentService {
       await log.save();
       throw error;
     }
+  }
+
+  // Process SePay webhook
+  async processSePayWebhook(payload, authHeader, headers = {}) {
+    const startTime = Date.now();
+    let authStatus = "skipped";
+
+    // 1. Verify API Key
+    const isAuthorized = this.verifySePaySignature(authHeader);
+
+    if (!isAuthorized && process.env.SEPAY_API_KEY) {
+      authStatus = "invalid";
+      await WebhookLog.create({
+        provider: "sepay",
+        headers,
+        body: payload,
+        signatureStatus: authStatus,
+        processingStatus: "failed",
+        error: "INVALID_API_KEY",
+        responseTime: Date.now() - startTime,
+      });
+      throw new Error("INVALID_SIGNATURE");
+    }
+
+    const log = await WebhookLog.create({
+      provider: "sepay",
+      headers,
+      body: payload,
+      signatureStatus: isAuthorized ? "verified" : "skipped",
+      processingStatus: "pending",
+    });
+
+    try {
+      // SePay usually sends a single transaction per webhook
+      const result = await this.processSePayTransaction(payload);
+
+      // Update log
+      log.processingStatus =
+        result.status === "success"
+          ? "processed"
+          : result.status === "unmatched"
+            ? "unmatched"
+            : "failed";
+      log.results = [result];
+      log.responseTime = Date.now() - startTime;
+      await log.save();
+
+      return { status: "processed", results: [result] };
+    } catch (error) {
+      console.error("SePay webhook processing error:", error);
+      log.processingStatus = "failed";
+      log.error = error.message;
+      log.responseTime = Date.now() - startTime;
+      await log.save();
+      throw error;
+    }
+  }
+
+  // Process single SePay transaction
+  async processSePayTransaction(tx) {
+    const {
+      id: sePayTxId,
+      transferAmount: amount,
+      content: description,
+      transferType,
+      transactionDate,
+      referenceCode,
+    } = tx;
+
+    const providerTxId = (sePayTxId || `sepay_${Date.now()}`).toString();
+
+    // Only process "in" (money in) transactions
+    if (transferType !== "in") {
+      return { status: "ignored", reason: "NOT_INCOMING_TRANSFER" };
+    }
+
+    // Check idempotency
+    const existingTx = await PaymentTransaction.findOne({ providerTxId });
+    if (existingTx) {
+      return { status: "duplicate", providerTxId };
+    }
+
+    // Parse transfer code from content (equivalent to description in Casso)
+    const transferCode = PaymentIntent.parseTransferCode(description);
+
+    if (!transferCode) {
+      await PaymentTransaction.createFromWebhook({
+        providerTxId,
+        amount,
+        description,
+        status: "unmatched",
+        provider: "vietqr_sepay",
+        rawPayload: tx,
+      });
+      return { status: "unmatched", error: "NO_TRANSFER_CODE" };
+    }
+
+    // Find intent
+    const intent = await PaymentIntent.findOne({ transferCode });
+
+    if (!intent) {
+      await PaymentTransaction.createFromWebhook({
+        providerTxId,
+        amount,
+        description,
+        transferCode,
+        status: "unmatched",
+        provider: "vietqr_sepay",
+        rawPayload: tx,
+      });
+      return { status: "intent_not_found", error: "INTENT_NOT_FOUND" };
+    }
+
+    // Check if paid or expired
+    if (intent.status === "paid") {
+      return { status: "already_paid", intentId: intent._id };
+    }
+
+    if (intent.isExpired()) {
+      intent.status = "expired";
+      await intent.save();
+      return { status: "expired", error: "INTENT_EXPIRED" };
+    }
+
+    // Check amount
+    if (amount < intent.amount) {
+      intent.status = "underpaid";
+      await intent.save();
+      return { status: "underpaid", error: "AMOUNT_MISMATCH" };
+    }
+
+    // SUCCESS
+    const transaction = await PaymentTransaction.createFromWebhook({
+      providerTxId,
+      intentId: intent._id,
+      userId: intent.userId,
+      amount,
+      description,
+      transferCode,
+      status: "matched",
+      provider: "vietqr_sepay",
+      rawPayload: tx,
+    });
+
+    await intent.markAsPaid(transaction._id);
+    await this.upgradeUser(intent.userId, intent.plan, intent._id);
+
+    // Email notification
+    setImmediate(async () => {
+      try {
+        const user = await User.findById(intent.userId);
+        if (user) {
+          await emailService.sendPaymentConfirmation(
+            user.email,
+            intent.plan,
+            intent.amount,
+            intent.transferCode,
+          );
+        }
+      } catch (e) {
+        console.error("Email error:", e);
+      }
+    });
+
+    return {
+      status: "success",
+      transactionId: transaction._id,
+      intentId: intent._id,
+    };
   }
 
   // Process single transaction from webhook
@@ -416,7 +609,7 @@ class PaymentService {
         "expected:",
         intent.amount,
         "received:",
-        amount
+        amount,
       );
       return { status: "underpaid", error: "AMOUNT_MISMATCH" };
     }
@@ -450,7 +643,7 @@ class PaymentService {
             user.email,
             intent.plan,
             intent.amount,
-            intent.transferCode
+            intent.transferCode,
           );
           console.log("Confirmation email sent to:", user.email);
         }
@@ -516,7 +709,7 @@ class PaymentService {
       },
       {
         status: "expired",
-      }
+      },
     );
 
     console.log("Cancelled expired intents:", result.modifiedCount);

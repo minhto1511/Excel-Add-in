@@ -56,7 +56,7 @@ const paymentTransactionSchema = new Schema(
 
     provider: {
       type: String,
-      enum: ["vietqr_casso", "vnpay", "momo", "manual"],
+      enum: ["vietqr_casso", "vietqr_sepay", "vnpay", "momo", "manual"],
       required: true,
     },
 
@@ -82,7 +82,7 @@ const paymentTransactionSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Compound indexes
@@ -142,7 +142,7 @@ paymentTransactionSchema.statics.getUnmatched = function (limit = 50) {
 paymentTransactionSchema.statics.getUserHistory = function (
   userId,
   limit = 20,
-  skip = 0
+  skip = 0,
 ) {
   return this.find({ userId, status: "matched" })
     .sort({ createdAt: -1 })

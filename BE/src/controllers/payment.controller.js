@@ -91,7 +91,7 @@ export const getPaymentIntentStatus = async (req, res) => {
     // ✅ FIX: Prevent caching in Office WebView
     res.setHeader(
       "Cache-Control",
-      "no-store, no-cache, must-revalidate, proxy-revalidate"
+      "no-store, no-cache, must-revalidate, proxy-revalidate",
     );
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
@@ -201,12 +201,12 @@ export const handleCassoWebhook = async (req, res) => {
     console.log("Casso webhook received:");
     console.log(
       "- Signature header:",
-      signature ? signature.substring(0, 50) + "..." : "none"
+      signature ? signature.substring(0, 50) + "..." : "none",
     );
     console.log("- RawBody length:", rawBody ? rawBody.length : 0);
     console.log(
       "- Payload preview:",
-      JSON.stringify(payload).substring(0, 200)
+      JSON.stringify(payload).substring(0, 200),
     );
 
     // Process webhook with rawBody for signature verification
@@ -214,7 +214,7 @@ export const handleCassoWebhook = async (req, res) => {
       payload,
       rawBody,
       signature,
-      req.headers
+      req.headers,
     );
 
     // Always return 200 to acknowledge receipt
@@ -234,6 +234,49 @@ export const handleCassoWebhook = async (req, res) => {
     }
 
     // Return 200 to acknowledge receipt even on errors
+    res.status(200).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+// ==================== SEPAY WEBHOOK ====================
+export const handleSePayWebhook = async (req, res) => {
+  try {
+    const payload = req.body;
+    const authHeader = req.headers["authorization"]; // Format: "Apikey API_KEY"
+
+    console.log("SePay webhook received:");
+    console.log("- Auth Header:", authHeader ? "Present" : "None");
+    console.log(
+      "- Payload preview:",
+      JSON.stringify(payload).substring(0, 200),
+    );
+
+    // Process webhook
+    const result = await paymentService.processSePayWebhook(
+      payload,
+      authHeader,
+      req.headers,
+    );
+
+    // SePay requires 200 or 201 with { success: true } for acknowledgement
+    res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error("SePay webhook error:", error);
+
+    if (error.message === "INVALID_SIGNATURE") {
+      return res.status(401).json({
+        success: false,
+        error: "INVALID_SIGNATURE",
+      });
+    }
+
+    // Return 200 with success: false to prevent retries for logic errors
     res.status(200).json({
       success: false,
       error: error.message,
@@ -309,7 +352,7 @@ export const manualMatchTransaction = async (req, res) => {
 
     const result = await paymentService.manualMatchTransaction(
       transactionId,
-      intentId
+      intentId,
     );
 
     // Audit log

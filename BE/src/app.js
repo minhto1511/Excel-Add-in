@@ -37,9 +37,10 @@ app.use(
       "Authorization",
       "X-Casso-Signature",
       "Secure-Token",
+      "ngrok-skip-browser-warning",
     ],
     exposedHeaders: ["X-Request-ID"],
-  })
+  }),
 );
 
 // Custom JSON parser that preserves raw body for webhook signature verification
@@ -49,7 +50,7 @@ app.use(
       // Store raw body for webhook signature verification
       req.rawBody = buf.toString();
     },
-  })
+  }),
 );
 
 // General rate limiter
