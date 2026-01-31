@@ -52,7 +52,7 @@ const transactionSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Compound index for user history queries

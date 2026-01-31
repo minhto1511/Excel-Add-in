@@ -180,10 +180,7 @@ const FormulaGenerator = ({ disabled = false, onRequestComplete }) => {
                 <Eye24Regular className="context-toggle-content__icon" />
                 <div>
                   <Text weight="semibold" className="context-toggle-title">
-                    Đọc ngữ cảnh Excel (Gợi ý)
-                  </Text>
-                  <Text size={200} className="context-toggle-desc">
-                    AI sẽ phân tích dữ liệu thực tế trong sheet để tạo công thức chính xác hơn
+                    Đọc ngữ cảnh Excel
                   </Text>
                 </div>
               </div>

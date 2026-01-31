@@ -34,6 +34,7 @@ const webhookEventSchema = new Schema(
 
     processed: {
       type: Boolean,
+
       default: false,
       index: true,
     },
@@ -49,7 +50,7 @@ const webhookEventSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Compound index
@@ -58,7 +59,7 @@ webhookEventSchema.index({ provider: 1, processed: 1, createdAt: -1 });
 // TTL: auto delete after 90 days
 webhookEventSchema.index(
   { createdAt: 1 },
-  { expireAfterSeconds: 90 * 24 * 60 * 60 }
+  { expireAfterSeconds: 90 * 24 * 60 * 60 },
 );
 
 // Static: Check if event already processed (idempotency)
@@ -72,7 +73,7 @@ webhookEventSchema.statics.createEvent = async function (
   provider,
   eventId,
   rawPayload,
-  signature = null
+  signature = null,
 ) {
   // Check if already exists
   const existing = await this.findOne({ eventId });
@@ -94,7 +95,7 @@ webhookEventSchema.statics.createEvent = async function (
 // Instance: Mark as processed
 webhookEventSchema.methods.markProcessed = async function (
   transactionId = null,
-  error = null
+  error = null,
 ) {
   this.processed = true;
   this.processedAt = new Date();

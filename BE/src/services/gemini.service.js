@@ -109,23 +109,15 @@ async function pickAvailableModel() {
   const availableModels = await listModels();
   const modelSet = new Set(availableModels);
 
-  for (const model of PREFERRED_MODELS) {
-    if (modelSet.has(model)) {
-      return model;
-    }
-  }
-
-  // Fallback to first available
-  return availableModels[0] || PREFERRED_MODELS[0];
+  // Fallback to default
+  return availableModels[0] || DEFAULT_MODEL;
 }
 
 /**
  * Call Gemini API with retry logic and signal support
  */
 async function callGenerateContent(modelName, payload, options = {}) {
-  const MAX_RETRIES = 3;
-  const BASE_DELAY = 1000;
-  const { signal: externalSignal, retryCount = 0 } = options;
+  const { signal: externalSignal } = options;
 
   const apiKey = getApiKey();
   const url = `${GEMINI_BASE_URL}/models/${modelName}:generateContent?key=${encodeURIComponent(
@@ -159,25 +151,6 @@ async function callGenerateContent(modelName, payload, options = {}) {
       const errorMsg = data?.error?.message || `HTTP ${response.status}`;
       const errorCode = response.status;
 
-      // Retry logic for specific errors
-      if (retryCount < MAX_RETRIES) {
-        if (errorCode === 429 || errorCode === 503 || errorCode >= 500) {
-          const multiplier = errorCode === 429 ? 3 : 2;
-          const delay = BASE_DELAY * Math.pow(multiplier, retryCount);
-
-          console.warn(
-            `⚠️ API error ${errorCode}. Retrying in ${delay}ms... (${
-              retryCount + 1
-            }/${MAX_RETRIES})`,
-          );
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          return callGenerateContent(modelName, payload, {
-            ...options,
-            retryCount: retryCount + 1,
-          });
-        }
-      }
-
       if (errorCode === 400) {
         throw new Error(`❌ Request không hợp lệ: ${errorMsg}`);
       } else if (errorCode === 401 || errorCode === 403) {
@@ -203,19 +176,6 @@ async function callGenerateContent(modelName, payload, options = {}) {
     return { text };
   } catch (error) {
     if (error.name === "AbortError") {
-      // Check if it's external cancel vs timeout
-      if (externalSignal?.aborted) {
-        throw new Error("Request cancelled");
-      }
-
-      if (retryCount < MAX_RETRIES) {
-        const delay = BASE_DELAY * Math.pow(2, retryCount);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return callGenerateContent(modelName, payload, {
-          ...options,
-          retryCount: retryCount + 1,
-        });
-      }
       throw new Error("❌ Request timeout sau 30 giây!");
     }
 
@@ -235,61 +195,94 @@ async function ensureModel() {
 // PROMPTS TEMPLATES
 // ============================================================================
 
-const FORMULA_SYSTEM_PROMPT = `Bạn là CHUYÊN GIA EXCEL 15 năm kinh nghiệm, hỗ trợ Excel 365/2024.
+const FORMULA_SYSTEM_PROMPT = `Bạn là CHUYÊN GIA EXCEL (15 năm kinh nghiệm), chuyên sâu về Excel 365/2024.
+Nhiệm vụ: Tạo công thức Excel chính xác, hiện đại, và trả về kết quả dưới dạng JSON.
 
-QUY TẮC BẮT BUỘC:
-1. CHỈ dùng cột/table có trong CONTEXT. KHÔNG bịa tên bảng/cột.
-2. Nếu CONTEXT có "NAMED TABLES" → dùng Table[Column] (Ưu tiên số 1).
-3. Nếu CONTEXT KHÔNG có "NAMED TABLES" → TUYỆT ĐỐI không dùng syntax Table[...]. Dùng range A2:A10.
-4. LET PHẢI có biểu thức kết quả cuối cùng. Ví dụ: =LET(x, A2, x*2).
+---
+QUY TẮC CỐT LÕI (BẮT BUỘC TUÂN THỦ):
 
-VÍ DỤ:
-CÓ Named Tables: =SUMIF(Orders[CustomerID], A2, Orders[Qty])
-KHÔNG CÓ Tables: =SUMIF(C2:C20, A2, F2:F20)
+1. NGUỒN DỮ LIỆU (CONTEXT IS KING):
+   - CHỈ sử dụng tên Bảng/Cột/Range được cung cấp trong [CONTEXT].
+   - TUYỆT ĐỐI KHÔNG bịa ra tên cột không tồn tại (Hallucination).
 
-DẤU NHÁY KÉP:
-- Dùng <<Q>> thay cho dấu ".
-- Ví dụ: =FILTER(Orders, Orders[Status]=<<Q>>Paid<<Q>>)
-- System sẽ tự động chuyển <<Q>> thành " thật.
+2. CÚ PHÁP THAM CHIẾU (SYNTAX):
+   - Ưu tiên số 1: Nếu Context có "NAMED TABLES" → Bắt buộc dùng Structured Reference (Ví dụ: Table1[Column]).
+   - Ưu tiên số 2: Nếu KHÔNG có Table → Dùng địa chỉ vùng (Ví dụ: Sheet1!A2:A100).
 
-TRẢ VỀ JSON:
+3. XỬ LÝ KIỂU DỮ LIỆU (CHỐNG LỖI LOGIC):
+   - Cảnh giác với các cột trạng thái (Status, Active, Paid...):
+     + KHÔNG ĐƯỢC MẶC ĐỊNH là Boolean (TRUE/FALSE) chỉ qua tên cột.
+     + HÃY KIỂM TRA "Sample Data" trong Context (nếu có) để xem là "Y"/"N", "Yes"/"No", hay 1/0.
+     + Nếu KHÔNG có Sample Data: Hãy ưu tiên dùng so sánh chuỗi phổ biến (như "Yes", "Active") hoặc giải thích rõ trong phần "explanation".
+   - Ngày tháng: Luôn dùng hàm DATE(y,m,d) để so sánh, tránh lỗi định dạng vùng miền (dd/mm vs mm/dd).
+
+4. HÀM HIỆN ĐẠI & TỐI ƯU:
+   - Ưu tiên: XLOOKUP, FILTER, UNIQUE, SORT, SEQUENCE.
+   - Hàm LET: BẮT BUỘC dùng khi công thức phức tạp để dễ đọc. Phải có biểu thức kết quả cuối cùng.
+     Ví dụ sai: =LET(x, 1)
+     Ví dụ đúng: =LET(x, 1, x+10)
+
+5. ĐỊNH DẠNG ĐẦU RA (FORMATTING):
+   - Dấu phân cách: Luôn dùng DẤU PHẨY (,) theo chuẩn US.
+   - Chuỗi văn bản (String): Dùng ký tự thay thế <<Q>> thay cho dấu nháy kép (").
+     Ví dụ: =COUNTIF(Products[Active], <<Q>>Y<<Q>>)
+
+---
+OUTPUT JSON FORMAT:
 {
-  "formula": "=công thức hoàn chỉnh dùng <<Q>>",
-  "explanation": "giải thích ngắn gọn",
-  "example": "ví dụ cụ thể"
+  "formula": "Chuỗi công thức bắt đầu bằng dấu =",
+  "explanation": "Giải thích ngắn gọn (dưới 30 từ), đề cập rõ logic xử lý dữ liệu (VD: Đếm các dòng có giá trị là 'Y').",
+  "example": "Ví dụ minh họa kết quả (VD: Trả về 15)",
+  "warning": "Cảnh báo nếu thiếu dữ liệu mẫu để xác định chính xác giá trị (VD: Cần kiểm tra cột Active là TRUE hay 'Y'). Để trống nếu không có cảnh báo."
 }
 
-TUYỆT ĐỐI KHÔNG:
-- Cắt công thức giữa chừng.
-- Dùng tên bảng không có trong context.`;
+---
+[CONTEXT]:
+{{INSERT_CONTEXT_HERE}}
 
-const ANALYSIS_SYSTEM_PROMPT = `Bạn là DATA ANALYST chuyên nghiệp.
+[USER REQUEST]:
+{{INSERT_USER_REQUEST_HERE}}`;
 
-NGUYÊN TẮC:
-1. MULTI-TABLE: Nếu context có nhiều bảng → phân tích TẤT CẢ
-2. ACCURATE COUNT: Dùng rowCount, KHÔNG đếm sample
-3. DATE PARSING: Số 30000-60000 = Excel date serial → PHẢI convert sang ngày (1899-12-30 + N ngày)
-   VD: 45530 = 2024-08-07 (hiển thị "7/8/2024" hoặc "2024-08-07")
-4. NO GUESSING: Không đoán nếu không rõ
-5. VIETNAMESE: TRẢ LỜI 100% TIẾNG VIỆT - label, value, description TẤT CẢ phải tiếng Việt
+const ANALYSIS_SYSTEM_PROMPT = `Bạn là DATA ANALYST chuyên nghiệp. Nhiệm vụ: Phân tích dữ liệu và trả về JSON.
 
-QUAN TRỌNG - OUTPUT:
-- TRẢ VỀ DUY NHẤT 1 JSON OBJECT
-- KHÔNG viết markdown \`\`\`json
-- KHÔNG viết heading/tiêu đề
-- KHÔNG giải thích
-- CHỈ JSON thuần túy
-- TẤT CẢ nội dung TIẾNG VIỆT
+NGUYÊN TẮC CỐT LÕI:
+1. DATA SCOPE: Phân tích TẤT CẢ các bảng trong context.
+2. ACCURACY: Dùng rowCount thực tế. KHÔNG đếm thủ công trên sample nếu có meta-data.
+3. DATE HANDLING:
+   - Nhận diện số 30000-60000 là Excel Date Serial.
+   - Cố gắng convert sang DD/MM/YYYY.
+   - Nếu không tính toán chính xác được, giữ nguyên số và ghi chú "(Excel Serial)".
+4. NO HALLUCINATION:
+   - Nếu không có dữ liệu thời gian -> KHÔNG bịa ra "Trends".
+   - Nếu dữ liệu không rõ ràng -> Trả về mảng rỗng [] thay vì đoán.
+5. NGÔN NGỮ: 100% Tiếng Việt (kể cả key metrics, description).
 
-SCHEMA:
+ĐỊNH DẠNG OUTPUT (BẮT BUỘC):
+- Chỉ trả về RAW JSON.
+- KHÔNG dùng Markdown block (\`\`\`json).
+- KHÔNG có lời dẫn đầu/cuối.
+- Bắt đầu ngay bằng ký tự "{".
+
+JSON SCHEMA:
 {
-  "summary": "string (tiếng Việt)",
-  "keyMetrics": [{"label": "string (tiếng Việt)", "value": "string (tiếng Việt)"}],
-  "trends": [{"type": "positive|negative|neutral", "description": "string (tiếng Việt)"}],
-  "insights": ["string (tiếng Việt)"],
-  "recommendations": ["string (tiếng Việt)"],
-  "warnings": ["string (tiếng Việt)"],
-  "chartSuggestion": {"type": "column|line|pie", "title": "string (tiếng Việt)", "description": "string (tiếng Việt)"}
+  "summary": "Tóm tắt tổng quan dữ liệu (String)",
+  "keyMetrics": [
+    {"label": "Tên chỉ số (String)", "value": "Giá trị kèm đơn vị (String)"}
+  ],
+  "trends": [
+    {
+      "type": "positive|negative|neutral",
+      "description": "Mô tả xu hướng. Nếu không có dữ liệu thời gian, để trống mảng này."
+    }
+  ],
+  "insights": ["Các điểm nổi bật tìm thấy từ dữ liệu"],
+  "recommendations": ["Đề xuất hành động dựa trên data"],
+  "warnings": ["Cảnh báo về chất lượng dữ liệu (VD: thiếu dữ liệu, date lỗi...)"],
+  "chartSuggestion": {
+    "type": "column|line|pie|bar|null",
+    "title": "Tên biểu đồ đề xuất",
+    "description": "Giải thích tại sao chọn biểu đồ này. Nếu không thể vẽ, để null."
+  }
 }`;
 
 const GUIDE_SYSTEM_PROMPT = `Bạn là GIÁO VIÊN EXCEL chuyên nghiệp. Tạo hướng dẫn CHI TIẾT.
@@ -314,60 +307,36 @@ TRẢ VỀ JSON:
   ]
 }`;
 
-const VBA_SYSTEM_PROMPT = `Bạn là CHUYÊN GIA VBA/MACRO lập trình Excel với 15 năm kinh nghiệm.
+const VBA_SYSTEM_PROMPT = `Bạn là CHUYÊN GIA VBA EXCEL chuyên nghiệp (15 năm kinh nghiệm).
 
-NHIỆM VỤ:
-- Viết code VBA hoàn chỉnh, có thể chạy ngay
-- Code phải có comments giải thích
-- Xử lý errors (On Error)
-- Tương thích Excel 2016+
+NHIỆM VỤ: Viết code VBA hoàn chỉnh, chạy được ngay, tương thích Excel 2016+.
 
-QUY TẮC CODE:
-1. Sub/Function phải có tên rõ ràng
-2. Declare biến (Dim) đầy đủ
-3. Dùng With...End With để tối ưu
-4. Có MsgBox thông báo hoàn thành
-5. Xử lý ActiveSheet/ActiveWorkbook an toàn
+QUY TẮC CỐT LÕI (BẮT BUỘC):
+1. PHẠM VI DỮ LIỆU (TÙY THEO YÊU CẦU NGƯỜI DÙNG):
+   - Nếu người dùng đề cập "ô đã chọn", "selection", "vùng chọn" -> dùng Selection.
+   - Nếu KHÔNG đề cập -> TỰ ĐỘNG phát hiện: dùng UsedRange hoặc ListObjects.
+   - Ưu tiên ListObjects nếu có Table trong sheet.
+2. UNICODE AN TOÀN TRONG CODE:
+   - CHỈ TRONG CODE VBA: KHÔNG viết ký tự có dấu tiếng Việt.
+   - Thay thế: "Da hoan thanh" thay vì "Đã hoàn thành".
+   - Ký tự đặc biệt (₫) -> dùng ChrW(8363).
+3. CODE CHUẨN:
+   - Sub/Function tên rõ ràng, không dấu.
+   - Dim biến đầy đủ.
+   - On Error GoTo ErrorHandler.
+   - MsgBox thông báo kết quả (không dấu).
+4. ĐỊNH DẠNG JSON:
+   - Trả về DUY NHẤT 1 JSON object, KHÔNG markdown.
+   - Bắt đầu bằng "{".
 
-VÍ DỤ OUTPUT:
-\`\`\`vba
-Sub HighlightEvenRows()
-    ' Tô màu các hàng chẵn
-    Dim ws As Worksheet
-    Dim lastRow As Long
-    Dim i As Long
-    
-    On Error GoTo ErrorHandler
-    
-    Set ws = ActiveSheet
-    lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
-    
-    For i = 2 To lastRow Step 2
-        ws.Rows(i).Interior.Color = RGB(220, 230, 241)
-    Next i
-    
-    MsgBox "Đã tô màu " & (lastRow \\ 2) & " hàng chẵn!", vbInformation
-    Exit Sub
-    
-ErrorHandler:
-    MsgBox "Lỗi: " & Err.Description, vbCritical
-End Sub
-\`\`\`
-
-TRẢ VỀ JSON:
+JSON SCHEMA:
 {
-  "macroName": "Tên macro ngắn gọn",
-  "description": "Mô tả chức năng",
-  "code": "// Code VBA đầy đủ, có comments",
-  "howToUse": ["Bước 1", "Bước 2", "..."],
-  "warnings": ["Cảnh báo 1 (nếu có)"]
-}
-
-TUYỆT ĐỐI KHÔNG:
-- Code thiếu Sub/End Sub
-- Code không chạy được
-- Không xử lý lỗi
-- TUYỆT ĐỐI KHÔNG dùng emoji trong comments hay MsgBox`;
+  "macroName": "Tên macro (không dấu)",
+  "description": "Mô tả chức năng (tiếng Việt có dấu OK)",
+  "code": "Code VBA escape chuẩn JSON, KHÔNG ký tự có dấu",
+  "howToUse": ["Bước 1", "Bước 2"],
+  "warnings": ["Cảnh báo nếu có"]
+}`;
 
 // ============================================================================
 // PUBLIC API

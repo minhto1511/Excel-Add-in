@@ -136,9 +136,6 @@ const VBAGenerator = ({ disabled = false, onRequestComplete }) => {
                   <Text weight="semibold" className="context-toggle-title">
                     Đọc ngữ cảnh Excel
                   </Text>
-                  <Text size={200} className="context-toggle-desc">
-                    AI sẽ tạo code phù hợp với dữ liệu thực tế của bạn
-                  </Text>
                 </div>
               </div>
             }
