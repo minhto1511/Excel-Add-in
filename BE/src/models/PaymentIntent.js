@@ -88,7 +88,7 @@ const paymentIntentSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Compound indexes
@@ -98,15 +98,12 @@ paymentIntentSchema.index({ transferCode: 1, status: 1 });
 // TTL index: auto delete expired intents after 24h
 paymentIntentSchema.index(
   { expiresAt: 1 },
-  { expireAfterSeconds: 24 * 60 * 60 }
+  { expireAfterSeconds: 24 * 60 * 60 },
 );
 
 // Plan pricing map (VND)
 const PRICING_MAP = {
-  pro_monthly: 99000,
-  pro_yearly: 990000,
-  credits_50: 49000,
-  credits_100: 89000,
+  pro_monthly: 49000,
 };
 
 // Static: Generate unique transfer code
@@ -134,7 +131,7 @@ paymentIntentSchema.statics.generateTransferCode = async function () {
 paymentIntentSchema.statics.createIntent = async function (
   userId,
   plan,
-  provider = "vietqr_casso"
+  provider = "vietqr_casso",
 ) {
   const amount = PRICING_MAP[plan];
   if (!amount) throw new Error("INVALID_PLAN");
@@ -191,7 +188,7 @@ paymentIntentSchema.methods.generateQRUrl = function () {
 
   // VietQR API format
   const qrUrl = `https://img.vietqr.io/image/${bankCode}-${accountNumber}-compact.png?amount=${amount}&addInfo=${encodeURIComponent(
-    description
+    description,
   )}&accountName=${encodeURIComponent(accountName)}`;
 
   return qrUrl;

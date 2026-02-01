@@ -248,87 +248,100 @@ const UpgradePro = ({ onClose, currentPlan }) => {
             Mở khóa sức mạnh AI không giới hạn
           </Text>
 
-          {/* Plan Selection */}
-          {pricing && (
-            <RadioGroup
-              value={selectedPlan}
-              onChange={(e, data) => setSelectedPlan(data.value)}
-              style={{ marginBottom: "16px" }}
+          {/* Plan Selection - Simplified */}
+          <RadioGroup
+            value={selectedPlan}
+            onChange={(e, data) => setSelectedPlan(data.value)}
+            style={{ marginBottom: "16px" }}
+          >
+            {/* Gói Phổ thông 49k */}
+            <Card
+              style={{
+                width: "100%",
+                padding: "12px",
+                marginBottom: "8px",
+                border: selectedPlan === "pro_monthly" ? "2px solid #10b981" : "1px solid #e5e7eb",
+                background: selectedPlan === "pro_monthly" ? "#ecfdf5" : "transparent",
+                cursor: "pointer",
+              }}
+              onClick={() => setSelectedPlan("pro_monthly")}
             >
-              <Card
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  marginBottom: "8px",
-                  border: selectedPlan === "pro_yearly" ? "2px solid #10b981" : "1px solid #e5e7eb",
-                  background: selectedPlan === "pro_yearly" ? "#ecfdf5" : "transparent",
-                  cursor: "pointer",
-                }}
-                onClick={() => setSelectedPlan("pro_yearly")}
+              <div
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
               >
-                <div
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <Radio value="pro_yearly" />
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <Text weight="semibold">Pro Năm</Text>
-                        <span
-                          style={{
-                            background: "#f59e0b",
-                            color: "white",
-                            padding: "2px 6px",
-                            borderRadius: "4px",
-                            fontSize: "10px",
-                            fontWeight: "600",
-                          }}
-                        >
-                          PHỔ BIẾN
-                        </span>
-                      </div>
-                      <Text size={200} style={{ color: "#6b7280" }}>
-                        Tiết kiệm 17%
-                      </Text>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <Radio value="pro_monthly" />
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <Text weight="semibold">Gói Pro</Text>
+                      <span
+                        style={{
+                          background: "#10b981",
+                          color: "white",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          fontSize: "10px",
+                          fontWeight: "600",
+                        }}
+                      >
+                        PHỔ THÔNG
+                      </span>
                     </div>
+                    <Text size={200} style={{ color: "#6b7280" }}>
+                      Thanh toán qua QR Banking
+                    </Text>
                   </div>
-                  <Text weight="bold" style={{ color: "#059669", fontSize: "18px" }}>
-                    {formatPrice(pricing.pro_yearly?.price)} ₫
-                  </Text>
                 </div>
-              </Card>
+                <Text weight="bold" style={{ color: "#059669", fontSize: "18px" }}>
+                  49.000 ₫
+                </Text>
+              </div>
+            </Card>
 
-              <Card
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  marginBottom: "8px",
-                  border:
-                    selectedPlan === "pro_monthly" ? "2px solid #10b981" : "1px solid #e5e7eb",
-                  background: selectedPlan === "pro_monthly" ? "#ecfdf5" : "transparent",
-                  cursor: "pointer",
-                }}
-                onClick={() => setSelectedPlan("pro_monthly")}
+            {/* Gói Sinh viên 39k - Dẫn sang Fanpage */}
+            <Card
+              style={{
+                width: "100%",
+                padding: "12px",
+                marginBottom: "8px",
+                border: selectedPlan === "student" ? "2px solid #3b82f6" : "1px solid #e5e7eb",
+                background: selectedPlan === "student" ? "#eff6ff" : "transparent",
+                cursor: "pointer",
+              }}
+              onClick={() => setSelectedPlan("student")}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
               >
-                <div
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <Radio value="pro_monthly" />
-                    <div>
-                      <Text weight="semibold">Pro Tháng</Text>
-                      <Text size={200} style={{ color: "#6b7280" }}>
-                        Thanh toán hàng tháng
-                      </Text>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <Radio value="student" />
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <Text weight="semibold">Gói Sinh Viên</Text>
+                      <span
+                        style={{
+                          background: "#3b82f6",
+                          color: "white",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          fontSize: "10px",
+                          fontWeight: "600",
+                        }}
+                      >
+                        ƯU ĐÃI
+                      </span>
                     </div>
+                    <Text size={200} style={{ color: "#6b7280" }}>
+                      Liên hệ Fanpage để mua
+                    </Text>
                   </div>
-                  <Text weight="bold" style={{ color: "#059669", fontSize: "18px" }}>
-                    {formatPrice(pricing.pro_monthly?.price)} ₫
-                  </Text>
                 </div>
-              </Card>
-            </RadioGroup>
-          )}
+                <Text weight="bold" style={{ color: "#3b82f6", fontSize: "18px" }}>
+                  39.000 ₫
+                </Text>
+              </div>
+            </Card>
+          </RadioGroup>
 
           {/* Features */}
           <div
@@ -384,15 +397,26 @@ const UpgradePro = ({ onClose, currentPlan }) => {
           <Button appearance="secondary" onClick={onClose}>
             Để sau
           </Button>
-          <Button
-            appearance="primary"
-            onClick={handleCreateIntent}
-            disabled={status === "loading" || !pricing}
-            icon={status === "loading" ? <Spinner size="tiny" /> : <QrCode24Regular />}
-            style={{ background: "#10b981" }}
-          >
-            {status === "loading" ? "Đang tạo..." : "Thanh toán ngay"}
-          </Button>
+          {selectedPlan === "student" ? (
+            <Button
+              appearance="primary"
+              onClick={() => window.open("https://www.facebook.com/EOfficialTutorAI", "_blank")}
+              icon={<Rocket24Regular />}
+              style={{ background: "#3b82f6" }}
+            >
+              Liên hệ Fanpage
+            </Button>
+          ) : (
+            <Button
+              appearance="primary"
+              onClick={handleCreateIntent}
+              disabled={status === "loading"}
+              icon={status === "loading" ? <Spinner size="tiny" /> : <QrCode24Regular />}
+              style={{ background: "#10b981" }}
+            >
+              {status === "loading" ? "Đang tạo..." : "Thanh toán ngay"}
+            </Button>
+          )}
         </DialogActions>
       </>
     );
