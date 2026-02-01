@@ -25,7 +25,7 @@ const Logo = () => {
         </svg>
       </div>
       <div className="logo__text">
-        EOffice <span>Tutor AI</span>
+        EOFFICIAL <span>Tutor AI</span>
       </div>
     </div>
   );

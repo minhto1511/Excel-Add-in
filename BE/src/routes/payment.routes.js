@@ -4,7 +4,6 @@ import {
   getPaymentIntentStatus,
   getPaymentHistory,
   getPricing,
-  handleCassoWebhook,
   handleSePayWebhook,
   handleVNPayWebhook,
   getUnmatchedTransactions,
@@ -16,13 +15,6 @@ import { paymentIntentLimiter } from "../middlewares/rateLimiter.middleware.js";
 const router = Router();
 
 // ==================== PUBLIC ROUTES (Webhooks) ====================
-
-// Casso Webhook V2 (bank transfer notification)
-// Format theo tài liệu Casso: /api/webhook-event-handler
-router.post("/webhook-event-handler", handleCassoWebhook);
-
-// Casso webhook (alternative path)
-router.post("/webhook/casso", handleCassoWebhook);
 
 // SePay webhook
 router.post("/webhook/sepay", handleSePayWebhook);

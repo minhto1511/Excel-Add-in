@@ -188,59 +188,6 @@ export const getPricing = async (req, res) => {
   }
 };
 
-// ==================== CASSO WEBHOOK ====================
-export const handleCassoWebhook = async (req, res) => {
-  try {
-    const payload = req.body;
-    const rawBody = req.rawBody; // Captured by express.json verify option
-
-    // V2 uses X-Casso-Signature, V1 uses secure-token
-    const signature =
-      req.headers["x-casso-signature"] || req.headers["secure-token"];
-
-    console.log("Casso webhook received:");
-    console.log(
-      "- Signature header:",
-      signature ? signature.substring(0, 50) + "..." : "none",
-    );
-    console.log("- RawBody length:", rawBody ? rawBody.length : 0);
-    console.log(
-      "- Payload preview:",
-      JSON.stringify(payload).substring(0, 200),
-    );
-
-    // Process webhook with rawBody for signature verification
-    const result = await paymentService.processCassoWebhook(
-      payload,
-      rawBody,
-      signature,
-      req.headers,
-    );
-
-    // Always return 200 to acknowledge receipt
-    res.status(200).json({
-      success: true,
-      ...result,
-    });
-  } catch (error) {
-    console.error("Casso webhook error:", error);
-
-    // Still return 200 to prevent retries (except for signature errors)
-    if (error.message === "INVALID_SIGNATURE") {
-      return res.status(401).json({
-        success: false,
-        error: "INVALID_SIGNATURE",
-      });
-    }
-
-    // Return 200 to acknowledge receipt even on errors
-    res.status(200).json({
-      success: false,
-      error: error.message,
-    });
-  }
-};
-
 // ==================== SEPAY WEBHOOK ====================
 export const handleSePayWebhook = async (req, res) => {
   try {

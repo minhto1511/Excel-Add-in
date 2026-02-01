@@ -35,8 +35,6 @@ app.use(
     allowedHeaders: [
       "Content-Type",
       "Authorization",
-      "X-Casso-Signature",
-      "Secure-Token",
       "ngrok-skip-browser-warning",
     ],
     exposedHeaders: ["X-Request-ID"],
