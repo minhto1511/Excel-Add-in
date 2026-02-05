@@ -4,7 +4,7 @@
   <Version>1.0.0.0</Version>
   <ProviderName>Contoso</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="EOffice Tutor AI"/>
+  <DisplayName DefaultValue="EOfficial Tutor AI"/>
   <Description DefaultValue="AI-Powered Excel Assistant with Formula Generator and Step-by-Step Guides"/>
   <IconUrl DefaultValue="https://excel-add-in-six.vercel.app/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://excel-add-in-six.vercel.app/assets/icon-64.png"/>

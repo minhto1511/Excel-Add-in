@@ -705,7 +705,8 @@ const AuthPage = ({ onLoginSuccess }) => {
       {view === "login" && (
         <div className="auth-info">
           <Text weight="semibold" className="auth-info__title">
-            🎁 Quyền lợi tài khoản miễn phí:
+            Cảm ơn bạn đã đăng ký tài khoản EOfficial Tutor AI. Vui lòng sử dụng mã OTP dưới đây để
+            hoàn tất đăng ký:{" "}
           </Text>
           <ul className="auth-info__list">
             <li>✓ 10 lượt sử dụng AI miễn phí</li>
@@ -728,6 +729,9 @@ const AuthPage = ({ onLoginSuccess }) => {
               <div className="otp-dialog-content">
                 <Text>Mã OTP đã được gửi đến</Text>
                 <Text weight="semibold">{email}</Text>
+                <Text size={100} style={{ color: "gray", marginTop: "4px", display: "block" }}>
+                  (Vui lòng kiểm tra cả hòm thư <b>Rác/Spam</b> nếu không thấy mã)
+                </Text>
 
                 <OTPInput value={otp} onChange={setOtp} disabled={isLoading} />
 

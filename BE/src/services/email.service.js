@@ -39,7 +39,7 @@ class EmailService {
     this.initialized = true;
     console.log(
       "Email service initialized with SendGrid, from:",
-      this.fromEmail
+      this.fromEmail,
     );
   }
 
@@ -52,18 +52,18 @@ class EmailService {
   getTemplate(purpose, otp) {
     const templates = {
       signup: {
-        subject: "Xác thực email - eOfficeAI",
+        subject: "Xác thực email - EOfficial Tutor AI",
         html: `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f9fafb; border-radius: 12px;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #1a73e8; margin: 0;">eOfficeAI</h1>
+              <h1 style="color: #1a73e8; margin: 0;">EOfficial Tutor AI</h1>
               <p style="color: #5f6368; margin: 5px 0;">Excel AI Assistant</p>
             </div>
             
             <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
               <h2 style="color: #202124; margin-top: 0;">Xác thực email của bạn</h2>
               <p style="color: #5f6368; line-height: 1.6;">
-                Cảm ơn bạn đã đăng ký tài khoản eOfficeAI. Vui lòng sử dụng mã OTP dưới đây để hoàn tất đăng ký:
+                Cảm ơn bạn đã đăng ký tài khoản EOfficial Tutor AI. Vui lòng sử dụng mã OTP dưới đây để hoàn tất đăng ký:
               </p>
               
               <div style="background: linear-gradient(135deg, #1a73e8, #4285f4); padding: 20px; text-align: center; border-radius: 8px; margin: 25px 0;">
@@ -78,18 +78,18 @@ class EmailService {
             </div>
             
             <div style="text-align: center; margin-top: 25px; color: #9aa0a6; font-size: 12px;">
-              <p>Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email.</p>
-              <p>© 2026 eOfficeAI. All rights reserved.</p>
+              <p>Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email. Nếu không thấy email trong Inbox, vui lòng kiểm tra hòm thư <strong>Rác (Spam/Junk)</strong>.</p>
+              <p>© 2026 EOfficial Tutor AI. All rights reserved.</p>
             </div>
           </div>
         `,
       },
       reset_password: {
-        subject: "Đặt lại mật khẩu - eOfficeAI",
+        subject: "Đặt lại mật khẩu - EOfficial Tutor AI",
         html: `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f9fafb; border-radius: 12px;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #1a73e8; margin: 0;">eOfficeAI</h1>
+              <h1 style="color: #1a73e8; margin: 0;">EOfficial Tutor AI</h1>
               <p style="color: #5f6368; margin: 5px 0;">Excel AI Assistant</p>
             </div>
             
@@ -111,13 +111,13 @@ class EmailService {
               
               <div style="background: #fef7e0; border-left: 4px solid #fbbc04; padding: 15px; border-radius: 4px; margin-top: 20px;">
                 <p style="color: #5f6368; margin: 0; font-size: 13px;">
-                  ⚠️ Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.
+                  ⚠️ Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này. Nếu không thấy email, vui lòng kiểm tra hòm thư <strong>Rác (Spam/Junk)</strong>.
                 </p>
               </div>
             </div>
             
             <div style="text-align: center; margin-top: 25px; color: #9aa0a6; font-size: 12px;">
-              <p>© 2026 eOfficeAI. All rights reserved.</p>
+              <p>© 2026 EOfficial Tutor AI. All rights reserved.</p>
             </div>
           </div>
         `,
@@ -139,7 +139,7 @@ class EmailService {
         if (isLastAttempt) {
           console.error(
             `[${correlationId}] All ${maxRetries} attempts failed:`,
-            error.response?.body || error.message
+            error.response?.body || error.message,
           );
           throw error;
         }
@@ -148,7 +148,7 @@ class EmailService {
         const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
         console.warn(
           `[${correlationId}] Retry ${attempt}/${maxRetries} after ${delay}ms - Error:`,
-          error.response?.body?.errors?.[0]?.message || error.message
+          error.response?.body?.errors?.[0]?.message || error.message,
         );
 
         await new Promise((resolve) => setTimeout(resolve, delay));
@@ -172,7 +172,7 @@ class EmailService {
 
     if (!this.fromEmail) {
       console.error(
-        `[${correlationId}] Email service not configured - missing SENDGRID_API_KEY or EMAIL_FROM`
+        `[${correlationId}] Email service not configured - missing SENDGRID_API_KEY or EMAIL_FROM`,
       );
       throw new Error("EMAIL_SERVICE_NOT_CONFIGURED");
     }
@@ -216,7 +216,7 @@ class EmailService {
         {
           error: error.message,
           errorBody: error.response?.body,
-        }
+        },
       );
 
       throw new Error("EMAIL_SEND_FAILED");
@@ -242,11 +242,11 @@ class EmailService {
     const msg = {
       to: email,
       from: this.fromEmail,
-      subject: "✅ Thanh toán thành công - eOfficeAI",
+      subject: "✅ Thanh toán thành công - EOfficial Tutor AI",
       html: `
         <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f9fafb; border-radius: 12px;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #1a73e8; margin: 0;">eOfficeAI</h1>
+            <h1 style="color: #1a73e8; margin: 0;">EOfficial Tutor AI</h1>
           </div>
           
           <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
@@ -266,7 +266,7 @@ class EmailService {
                 <tr>
                   <td style="padding: 10px 0; color: #5f6368;">Số tiền:</td>
                   <td style="padding: 10px 0; text-align: right; font-weight: bold; color: #202124;">${amount.toLocaleString(
-                    "vi-VN"
+                    "vi-VN",
                   )} VND</td>
                 </tr>
                 <tr>
@@ -277,12 +277,12 @@ class EmailService {
             </div>
             
             <p style="color: #5f6368; margin-top: 20px; text-align: center;">
-              Tài khoản của bạn đã được nâng cấp. Cảm ơn bạn đã sử dụng eOfficeAI!
+              Tài khoản của bạn đã được nâng cấp. Cảm ơn bạn đã sử dụng EOfficial Tutor AI!
             </p>
           </div>
           
           <div style="text-align: center; margin-top: 25px; color: #9aa0a6; font-size: 12px;">
-            <p>© 2026 eOfficeAI. All rights reserved.</p>
+            <p>© 2026 EOfficial Tutor AI. All rights reserved.</p>
           </div>
         </div>
       `,

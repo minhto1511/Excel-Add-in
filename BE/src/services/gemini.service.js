@@ -11,7 +11,7 @@
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1";
 
 // Model mặc định - KHÔNG gọi API để kiểm tra
-const DEFAULT_MODEL = "gemini-2.5-flash";
+const DEFAULT_MODEL = "gemini-3-pro-preview";
 
 // Cache model đã chọn
 let cachedModel = DEFAULT_MODEL;
