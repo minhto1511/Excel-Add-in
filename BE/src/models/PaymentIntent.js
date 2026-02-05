@@ -140,7 +140,7 @@ paymentIntentSchema.statics.createIntent = async function (
 
   const bankCode = process.env.BANK_CODE || "VCB";
   const accountNumber = process.env.BANK_ACCOUNT_NUMBER || "";
-  const accountName = process.env.BANK_ACCOUNT_NAME || "EOFFICEAI";
+  const accountName = process.env.BANK_ACCOUNT_NAME || "EOFFICIAL TUTOR AI";
 
   // Create intent
   const intent = await this.create({
@@ -155,7 +155,7 @@ paymentIntentSchema.statics.createIntent = async function (
       accountNumber,
       accountName,
       amount,
-      description: `${transferCode} eOfficeAI ${plan}`,
+      description: `${transferCode} EOfficial Tutor AI ${plan}`,
     },
   });
 

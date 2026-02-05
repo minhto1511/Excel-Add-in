@@ -727,11 +727,13 @@ const AuthPage = ({ onLoginSuccess }) => {
             <DialogTitle>{otpPurpose === "signup" ? "Xác thực Email" : "Nhập mã OTP"}</DialogTitle>
             <DialogContent>
               <div className="otp-dialog-content">
-                <Text>Mã OTP đã được gửi đến</Text>
-                <Text weight="semibold">{email}</Text>
-                <Text size={100} style={{ color: "gray", marginTop: "4px", display: "block" }}>
-                  (Vui lòng kiểm tra cả hòm thư <b>Rác/Spam</b> nếu không thấy mã)
-                </Text>
+                <div style={{ marginBottom: "16px" }}>
+                  <Text>Mã OTP đã được gửi đến </Text>
+                  <Text weight="semibold">{email}</Text>
+                  <div className="otp-dialog-hint">
+                    (Vui lòng kiểm tra cả hòm thư <b>Rác/Spam</b> nếu không thấy mã)
+                  </div>
+                </div>
 
                 <OTPInput value={otp} onChange={setOtp} disabled={isLoading} />
 

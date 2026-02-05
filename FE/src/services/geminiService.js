@@ -1,18 +1,18 @@
 /**
- * Gemini API Service for eOfficeAI
- * 
+ * Gemini API Service for EOfficial Tutor AI
+ *
  * User nhập API key qua UI, lưu trong localStorage
  */
 
-const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1';
+const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1";
 
 /**
  * Lấy API key từ localStorage
  */
 function getApiKey() {
-  const key = localStorage.getItem('gemini_api_key');
+  const key = localStorage.getItem("gemini_api_key");
   if (!key || !key.trim()) {
-    throw new Error('⚠️ Chưa có API key! Vui lòng nhập API key để sử dụng.');
+    throw new Error("⚠️ Chưa có API key! Vui lòng nhập API key để sử dụng.");
   }
   return key.trim();
 }
@@ -22,23 +22,23 @@ function getApiKey() {
  */
 export function saveApiKey(key) {
   if (!key || !key.trim()) {
-    throw new Error('API key không hợp lệ');
+    throw new Error("API key không hợp lệ");
   }
-  localStorage.setItem('gemini_api_key', key.trim());
+  localStorage.setItem("gemini_api_key", key.trim());
 }
 
 /**
  * Xóa API key
  */
 export function clearApiKey() {
-  localStorage.removeItem('gemini_api_key');
+  localStorage.removeItem("gemini_api_key");
 }
 
 /**
  * Check đã có API key chưa
  */
 export function hasApiKey() {
-  const key = localStorage.getItem('gemini_api_key');
+  const key = localStorage.getItem("gemini_api_key");
   return !!(key && key.trim());
 }
 
@@ -46,17 +46,17 @@ export function hasApiKey() {
  * Lấy key masked để hiển thị
  */
 export function getApiKeyMasked() {
-  const key = localStorage.getItem('gemini_api_key');
-  if (!key || key.length < 10) return '';
-  return key.substring(0, 10) + '...' + key.substring(key.length - 4);
+  const key = localStorage.getItem("gemini_api_key");
+  if (!key || key.length < 10) return "";
+  return key.substring(0, 10) + "..." + key.substring(key.length - 4);
 }
 
 // Danh sách models ưu tiên
 const PREFERRED_MODELS = [
-  'gemini-2.0-flash-exp',
-  'gemini-1.5-flash-latest',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
+  "gemini-2.0-flash-exp",
+  "gemini-1.5-flash-latest",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro",
 ];
 
 // Cache model đã chọn
@@ -71,12 +71,14 @@ const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
  * Generate cache key from prompt and context
  */
 function getCacheKey(prompt, excelContext) {
-  const contextKey = excelContext ? JSON.stringify({
-    rowCount: excelContext.rowCount,
-    columnCount: excelContext.columnCount,
-    columns: excelContext.columns?.map(c => ({ name: c.name, type: c.type }))
-  }) : 'no-context';
-  
+  const contextKey = excelContext
+    ? JSON.stringify({
+        rowCount: excelContext.rowCount,
+        columnCount: excelContext.columnCount,
+        columns: excelContext.columns?.map((c) => ({ name: c.name, type: c.type })),
+      })
+    : "no-context";
+
   return `${prompt.toLowerCase().trim()}|${contextKey}`;
 }
 
@@ -86,14 +88,14 @@ function getCacheKey(prompt, excelContext) {
 function getFromCache(key) {
   const cached = formulaCache.get(key);
   if (!cached) return null;
-  
+
   // Check expiry
   if (Date.now() - cached.timestamp > CACHE_TTL) {
     formulaCache.delete(key);
     return null;
   }
-  
-  console.log('✅ Cache hit!');
+
+  console.log("✅ Cache hit!");
   return cached.result;
 }
 
@@ -106,10 +108,10 @@ function saveToCache(key, result) {
     const firstKey = formulaCache.keys().next().value;
     formulaCache.delete(firstKey);
   }
-  
+
   formulaCache.set(key, {
     result,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
 }
 
@@ -118,74 +120,81 @@ function saveToCache(key, result) {
  */
 function cleanJSONResponse(text) {
   let cleaned = text.trim();
-  
+
   // Remove markdown code blocks
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```json?\n?/i, '').replace(/\n?```$/, '').trim();
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned
+      .replace(/^```json?\n?/i, "")
+      .replace(/\n?```$/, "")
+      .trim();
   }
-  
+
   // Extract JSON object if embedded in text (find first { and last })
-  const firstBrace = cleaned.indexOf('{');
-  const lastBrace = cleaned.lastIndexOf('}');
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
     cleaned = cleaned.substring(firstBrace, lastBrace + 1);
   }
-  
+
   // Fix unterminated strings - more robust approach
   // Track string state while parsing to find unterminated strings
   let inString = false;
   let stringStartIndex = -1;
   let escapeNext = false;
-  
+
   for (let i = 0; i < cleaned.length; i++) {
     const char = cleaned[i];
-    const prevChar = i > 0 ? cleaned[i - 1] : '';
-    
+    const prevChar = i > 0 ? cleaned[i - 1] : "";
+
     if (escapeNext) {
       escapeNext = false;
       continue;
     }
-    
-    if (char === '\\') {
+
+    if (char === "\\") {
       escapeNext = true;
       continue;
     }
-    
-    if (char === '"' && prevChar !== '\\') {
+
+    if (char === '"' && prevChar !== "\\") {
       if (!inString) {
         // Check if this is a value (after :)
         const beforeQuote = cleaned.substring(Math.max(0, i - 50), i).trim();
-        if (beforeQuote.endsWith(':')) {
+        if (beforeQuote.endsWith(":")) {
           inString = true;
           stringStartIndex = i;
         }
       } else {
         // Check if this is a valid closing quote
         const afterQuote = cleaned.substring(i + 1).trim();
-        if (afterQuote.startsWith(',') || afterQuote.startsWith('}') || 
-            afterQuote.startsWith(']') || afterQuote.length === 0) {
+        if (
+          afterQuote.startsWith(",") ||
+          afterQuote.startsWith("}") ||
+          afterQuote.startsWith("]") ||
+          afterQuote.length === 0
+        ) {
           inString = false;
           stringStartIndex = -1;
         }
       }
     }
   }
-  
+
   // If we're still in a string at the end, close it
   if (inString && stringStartIndex !== -1) {
     // Find where to close - look for next structural character
     let closePos = cleaned.length;
-    
+
     // Check if there's any structural character after current position
     for (let i = cleaned.length - 1; i >= stringStartIndex; i--) {
       const char = cleaned[i];
-      if (char === ',' || char === '}' || char === ']') {
+      if (char === "," || char === "}" || char === "]") {
         // Close before this character
         closePos = i;
         break;
       }
     }
-    
+
     // If we found a position, close before it; otherwise just add quote at end
     if (closePos < cleaned.length) {
       cleaned = cleaned.substring(0, closePos) + '"' + cleaned.substring(closePos);
@@ -193,34 +202,38 @@ function cleanJSONResponse(text) {
       cleaned += '"';
     }
   }
-  
+
   // Also check for odd number of unescaped quotes as fallback
   let unescapedQuoteCount = 0;
   for (let i = 0; i < cleaned.length; i++) {
-    if (cleaned[i] === '"' && (i === 0 || cleaned[i - 1] !== '\\')) {
+    if (cleaned[i] === '"' && (i === 0 || cleaned[i - 1] !== "\\")) {
       unescapedQuoteCount++;
     }
   }
-  
+
   if (unescapedQuoteCount % 2 !== 0) {
     // Still odd - try to find and close the last open string
     // Look for last quote that's not followed by , } or ]
     for (let i = cleaned.length - 1; i >= 0; i--) {
-      if (cleaned[i] === '"' && (i === 0 || cleaned[i - 1] !== '\\')) {
+      if (cleaned[i] === '"' && (i === 0 || cleaned[i - 1] !== "\\")) {
         const afterQuote = cleaned.substring(i + 1).trim();
-        if (!afterQuote.startsWith(',') && !afterQuote.startsWith('}') && 
-            !afterQuote.startsWith(']') && afterQuote.length > 0) {
+        if (
+          !afterQuote.startsWith(",") &&
+          !afterQuote.startsWith("}") &&
+          !afterQuote.startsWith("]") &&
+          afterQuote.length > 0
+        ) {
           // This quote might need to be closed
           // Find next delimiter or just close at end
           let closePos = cleaned.length;
-          const nextComma = cleaned.indexOf(',', i + 1);
-          const nextBrace = cleaned.indexOf('}', i + 1);
-          const nextBracket = cleaned.indexOf(']', i + 1);
-          
+          const nextComma = cleaned.indexOf(",", i + 1);
+          const nextBrace = cleaned.indexOf("}", i + 1);
+          const nextBracket = cleaned.indexOf("]", i + 1);
+
           if (nextComma !== -1) closePos = Math.min(closePos, nextComma);
           if (nextBrace !== -1) closePos = Math.min(closePos, nextBrace);
           if (nextBracket !== -1) closePos = Math.min(closePos, nextBracket);
-          
+
           if (closePos < cleaned.length) {
             cleaned = cleaned.substring(0, closePos) + '"' + cleaned.substring(closePos);
           } else {
@@ -231,30 +244,30 @@ function cleanJSONResponse(text) {
       }
     }
   }
-  
+
   // Remove trailing commas (multiple passes)
-  cleaned = cleaned.replace(/,(\s*\])/g, '$1');
-  cleaned = cleaned.replace(/,(\s*\})/g, '$1');
-  
+  cleaned = cleaned.replace(/,(\s*\])/g, "$1");
+  cleaned = cleaned.replace(/,(\s*\})/g, "$1");
+
   // Fix malformed JSON: "key":} or "key":] -> "key":""} or "key":""]
   cleaned = cleaned.replace(/"([^"]+)":\s*([}\]])/g, '"$1":""$2');
-  
+
   // Fix malformed JSON: "key":, -> "key":"",
   cleaned = cleaned.replace(/"([^"]+)":\s*,/g, '"$1":"",');
-  
+
   // Fix missing closing braces/brackets
   const openBraces = (cleaned.match(/{/g) || []).length;
   const closeBraces = (cleaned.match(/}/g) || []).length;
   const openBrackets = (cleaned.match(/\[/g) || []).length;
   const closeBrackets = (cleaned.match(/\]/g) || []).length;
-  
+
   if (openBrackets > closeBrackets) {
-    cleaned += ']'.repeat(openBrackets - closeBrackets);
+    cleaned += "]".repeat(openBrackets - closeBrackets);
   }
   if (openBraces > closeBraces) {
-    cleaned += '}'.repeat(openBraces - closeBraces);
+    cleaned += "}".repeat(openBraces - closeBraces);
   }
-  
+
   // Final attempt: Try to parse and if it fails, try smarter fixes
   try {
     JSON.parse(cleaned);
@@ -262,10 +275,10 @@ function cleanJSONResponse(text) {
     return cleaned;
   } catch (e) {
     // Parse failed - apply aggressive fixes for truncated JSON
-    
+
     // Strategy: Find if JSON ends with unterminated string value
     // Look for the pattern where we have ": "something... that's not properly closed
-    const lastColonIndex = cleaned.lastIndexOf(':');
+    const lastColonIndex = cleaned.lastIndexOf(":");
     if (lastColonIndex !== -1) {
       const afterColon = cleaned.substring(lastColonIndex + 1).trim();
       if (afterColon.startsWith('"')) {
@@ -274,16 +287,16 @@ function cleanJSONResponse(text) {
         let quoteCount = 0;
         let lastQuotePos = -1;
         for (let i = lastColonIndex + 1; i < cleaned.length; i++) {
-          if (cleaned[i] === '"' && (i === 0 || cleaned[i - 1] !== '\\')) {
+          if (cleaned[i] === '"' && (i === 0 || cleaned[i - 1] !== "\\")) {
             quoteCount++;
             lastQuotePos = i;
           }
         }
-        
+
         // If odd number of quotes, string is not closed
         if (quoteCount % 2 !== 0) {
           // String is unterminated - close it before the last }
-          const lastBracePos = cleaned.lastIndexOf('}');
+          const lastBracePos = cleaned.lastIndexOf("}");
           if (lastBracePos > lastQuotePos || lastQuotePos === -1) {
             // There's a } after the last quote (or no quote found), close string before it
             if (lastBracePos > lastColonIndex) {
@@ -298,7 +311,7 @@ function cleanJSONResponse(text) {
           }
         } else if (quoteCount === 1) {
           // Only one quote found (opening quote), string was cut immediately
-          const lastBracePos = cleaned.lastIndexOf('}');
+          const lastBracePos = cleaned.lastIndexOf("}");
           if (lastBracePos > lastColonIndex) {
             cleaned = cleaned.substring(0, lastBracePos) + '"' + cleaned.substring(lastBracePos);
           } else {
@@ -307,21 +320,21 @@ function cleanJSONResponse(text) {
         }
       }
     }
-    
+
     // Re-check and fix braces/brackets
     const finalOpenBraces = (cleaned.match(/{/g) || []).length;
     const finalCloseBraces = (cleaned.match(/}/g) || []).length;
     const finalOpenBrackets = (cleaned.match(/\[/g) || []).length;
     const finalCloseBrackets = (cleaned.match(/\]/g) || []).length;
-    
+
     if (finalOpenBrackets > finalCloseBrackets) {
-      cleaned += ']'.repeat(finalOpenBrackets - finalCloseBrackets);
+      cleaned += "]".repeat(finalOpenBrackets - finalCloseBrackets);
     }
     if (finalOpenBraces > finalCloseBraces) {
-      cleaned += '}'.repeat(finalOpenBraces - finalCloseBraces);
+      cleaned += "}".repeat(finalOpenBraces - finalCloseBraces);
     }
   }
-  
+
   return cleaned;
 }
 
@@ -330,18 +343,18 @@ function cleanJSONResponse(text) {
  */
 async function listModels(apiKey) {
   const url = `${GEMINI_BASE_URL}/models?key=${encodeURIComponent(apiKey)}`;
-  
+
   try {
     const res = await fetch(url);
     if (!res.ok) return [];
-    
+
     const data = await res.json();
-    const models = Array.isArray(data?.models) 
-      ? data.models.map((m) => m.name.replace('models/', '')) 
+    const models = Array.isArray(data?.models)
+      ? data.models.map((m) => m.name.replace("models/", ""))
       : [];
     return models;
   } catch (error) {
-    console.error('List models error:', error);
+    console.error("List models error:", error);
     return [];
   }
 }
@@ -352,13 +365,13 @@ async function listModels(apiKey) {
 async function pickAvailableModel(apiKey) {
   const availableModels = await listModels(apiKey);
   const modelSet = new Set(availableModels);
-  
+
   for (const model of PREFERRED_MODELS) {
     if (modelSet.has(model)) {
       return model;
     }
   }
-  
+
   // Fallback to first available
   return availableModels[0] || PREFERRED_MODELS[0];
 }
@@ -369,61 +382,69 @@ async function pickAvailableModel(apiKey) {
 async function callGenerateContent(modelName, payload, retryCount = 0) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 1000; // 1 second
-  
+
   const url = `${GEMINI_BASE_URL}/models/${modelName}:generateContent?key=${encodeURIComponent(getApiKey())}`;
-  
+
   try {
     // Add timeout to prevent hanging
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
-    
+
     const response = await fetch(url, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
-    
+
     clearTimeout(timeoutId);
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       const errorMsg = data?.error?.message || `HTTP ${response.status}`;
       const errorCode = response.status;
-      
+
       // Retry logic for specific errors
       if (retryCount < MAX_RETRIES) {
         // 429 Rate Limit - retry with exponential backoff
         if (errorCode === 429) {
           const delay = BASE_DELAY * Math.pow(2, retryCount);
-          console.warn(`⚠️ Rate limited. Retrying in ${delay}ms... (${retryCount + 1}/${MAX_RETRIES})`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          console.warn(
+            `⚠️ Rate limited. Retrying in ${delay}ms... (${retryCount + 1}/${MAX_RETRIES})`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
           return callGenerateContent(modelName, payload, retryCount + 1);
         }
-        
+
         // 503 Service Unavailable - retry
         if (errorCode === 503) {
           const delay = BASE_DELAY * Math.pow(2, retryCount);
-          console.warn(`⚠️ Service unavailable. Retrying in ${delay}ms... (${retryCount + 1}/${MAX_RETRIES})`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          console.warn(
+            `⚠️ Service unavailable. Retrying in ${delay}ms... (${retryCount + 1}/${MAX_RETRIES})`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
           return callGenerateContent(modelName, payload, retryCount + 1);
         }
-        
+
         // 500 Internal Server Error - retry
         if (errorCode >= 500) {
           const delay = BASE_DELAY * Math.pow(2, retryCount);
-          console.warn(`⚠️ Server error. Retrying in ${delay}ms... (${retryCount + 1}/${MAX_RETRIES})`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          console.warn(
+            `⚠️ Server error. Retrying in ${delay}ms... (${retryCount + 1}/${MAX_RETRIES})`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
           return callGenerateContent(modelName, payload, retryCount + 1);
         }
       }
-      
+
       // Enhanced error messages
       if (errorCode === 400) {
-        throw new Error(`❌ Request không hợp lệ: ${errorMsg}. Kiểm tra prompt hoặc context quá dài!`);
+        throw new Error(
+          `❌ Request không hợp lệ: ${errorMsg}. Kiểm tra prompt hoặc context quá dài!`
+        );
       } else if (errorCode === 404) {
         throw new Error(`❌ Model không tìm thấy: ${modelName}. Kiểm tra model name!`);
       } else if (errorCode === 429) {
@@ -431,52 +452,71 @@ async function callGenerateContent(modelName, payload, retryCount = 0) {
       } else if (errorCode === 401 || errorCode === 403) {
         throw new Error(`❌ API Key không hợp lệ hoặc hết hạn. Vui lòng kiểm tra lại!`);
       }
-      
+
       throw new Error(`❌ Lỗi API (${errorCode}): ${errorMsg}`);
     }
 
     const candidate = data.candidates?.[0];
-    const text = candidate?.content?.parts?.map((p) => p.text || '').join('\n').trim() || '';
-    
+    const text =
+      candidate?.content?.parts
+        ?.map((p) => p.text || "")
+        .join("\n")
+        .trim() || "";
+
     if (!text) {
-      throw new Error('❌ AI trả về response rỗng. Vui lòng thử lại!');
+      throw new Error("❌ AI trả về response rỗng. Vui lòng thử lại!");
     }
-    
+
     return { text };
-    
   } catch (error) {
     // Handle timeout/abort errors
-    if (error.name === 'AbortError') {
+    if (error.name === "AbortError") {
       if (retryCount < MAX_RETRIES) {
         const delay = BASE_DELAY * Math.pow(2, retryCount);
-        console.warn(`⚠️ Request timeout. Retrying in ${delay}ms... (${retryCount + 1}/${MAX_RETRIES})`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        console.warn(
+          `⚠️ Request timeout. Retrying in ${delay}ms... (${retryCount + 1}/${MAX_RETRIES})`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
         return callGenerateContent(modelName, payload, retryCount + 1);
       }
-      throw new Error('❌ Request timeout sau 30 giây. API có thể đang quá tải. Vui lòng thử lại!');
+      throw new Error("❌ Request timeout sau 30 giây. API có thể đang quá tải. Vui lòng thử lại!");
     }
-    
+
     // Handle SSL/TLS errors
-    if (error.code === 'EPROTO' || error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+    if (
+      error.code === "EPROTO" ||
+      error.code === "ETIMEDOUT" ||
+      error.code === "ECONNREFUSED" ||
+      error.code === "ENOTFOUND"
+    ) {
       if (retryCount < MAX_RETRIES) {
         const delay = BASE_DELAY * Math.pow(2, retryCount);
-        console.warn(`⚠️ Network/SSL error (${error.code}). Retrying in ${delay}ms... (${retryCount + 1}/${MAX_RETRIES})`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        console.warn(
+          `⚠️ Network/SSL error (${error.code}). Retrying in ${delay}ms... (${retryCount + 1}/${MAX_RETRIES})`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
         return callGenerateContent(modelName, payload, retryCount + 1);
       }
-      
+
       // After all retries failed
-      throw new Error(`❌ Lỗi kết nối (${error.code}): Không thể kết nối đến Gemini API. Vui lòng:\n1. Kiểm tra kết nối internet\n2. Tắt VPN/Proxy nếu có\n3. Thử lại sau vài phút`);
+      throw new Error(
+        `❌ Lỗi kết nối (${error.code}): Không thể kết nối đến Gemini API. Vui lòng:\n1. Kiểm tra kết nối internet\n2. Tắt VPN/Proxy nếu có\n3. Thử lại sau vài phút`
+      );
     }
-    
+
     // If network error and can retry
-    if (retryCount < MAX_RETRIES && (error.message.includes('fetch') || error.message.includes('network'))) {
+    if (
+      retryCount < MAX_RETRIES &&
+      (error.message.includes("fetch") || error.message.includes("network"))
+    ) {
       const delay = BASE_DELAY * Math.pow(2, retryCount);
-      console.warn(`⚠️ Network error. Retrying in ${delay}ms... (${retryCount + 1}/${MAX_RETRIES})`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      console.warn(
+        `⚠️ Network error. Retrying in ${delay}ms... (${retryCount + 1}/${MAX_RETRIES})`
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
       return callGenerateContent(modelName, payload, retryCount + 1);
     }
-    
+
     throw error;
   }
 }
@@ -487,21 +527,21 @@ async function callGenerateContent(modelName, payload, retryCount = 0) {
 function validateRequest(prompt, excelContext) {
   // Check prompt length
   if (!prompt || prompt.trim().length === 0) {
-    throw new Error('❌ Prompt không được rỗng!');
+    throw new Error("❌ Prompt không được rỗng!");
   }
-  
+
   if (prompt.length > 2000) {
-    throw new Error('❌ Prompt quá dài (max 2000 ký tự). Vui lòng rút gọn!');
+    throw new Error("❌ Prompt quá dài (max 2000 ký tự). Vui lòng rút gọn!");
   }
-  
+
   // Check context size
   if (excelContext) {
     const contextStr = JSON.stringify(excelContext);
     if (contextStr.length > 50000) {
-      console.warn('⚠️ Context quá lớn, có thể bị rate limit!');
+      console.warn("⚠️ Context quá lớn, có thể bị rate limit!");
     }
   }
-  
+
   return true;
 }
 
@@ -514,22 +554,22 @@ export async function generateExcelFormula(prompt, excelContext = null) {
   try {
     // Validate request
     validateRequest(prompt, excelContext);
-    
+
     // Check cache first
     const cacheKey = getCacheKey(prompt, excelContext);
     const cachedResult = getFromCache(cacheKey);
     if (cachedResult) {
       return cachedResult; // Return cached result immediately
     }
-    
+
     // Chọn model
     if (!cachedModel) {
       const availableModels = await listModels(getApiKey());
-      
+
       if (availableModels.length === 0) {
-        throw new Error('Không tìm thấy model nào. Kiểm tra API key!');
+        throw new Error("Không tìm thấy model nào. Kiểm tra API key!");
       }
-      
+
       cachedModel = await pickAvailableModel(getApiKey());
     }
 
@@ -659,31 +699,33 @@ KHÔNG viết markdown, KHÔNG giải thích thêm, CHỈ JSON thuần.`;
 
     // Build user prompt with context if available
     let userPrompt = `Yêu cầu của người dùng: ${prompt}`;
-    
+
     if (excelContext) {
       // Import formatContextForPrompt dynamically
-      const { formatContextForPrompt, analyzeIntentWithContext } = await import('./excelContextService.js');
-      
+      const { formatContextForPrompt, analyzeIntentWithContext } = await import(
+        "./excelContextService.js"
+      );
+
       // Add Excel context
       const contextText = formatContextForPrompt(excelContext);
       userPrompt = contextText + userPrompt;
-      
+
       // Detect intent: TỔNG vs TỪNG HÀNG
       const promptLower = prompt.toLowerCase();
-      const isTotalIntent = 
-        promptLower.includes('của toàn bộ') || 
-        promptLower.includes('của tất cả') ||
-        promptLower.includes('của cả') ||
-        promptLower.includes('tổng ') ||
-        (promptLower.includes('toàn bộ') && !promptLower.includes('cho')) ||
-        (promptLower.includes('tất cả') && !promptLower.includes('cho'));
-        
-      const isPerRowIntent = 
-        promptLower.includes('cho mỗi') ||
-        promptLower.includes('cho từng') ||
-        promptLower.includes('từng ') ||
-        promptLower.includes('mỗi ');
-      
+      const isTotalIntent =
+        promptLower.includes("của toàn bộ") ||
+        promptLower.includes("của tất cả") ||
+        promptLower.includes("của cả") ||
+        promptLower.includes("tổng ") ||
+        (promptLower.includes("toàn bộ") && !promptLower.includes("cho")) ||
+        (promptLower.includes("tất cả") && !promptLower.includes("cho"));
+
+      const isPerRowIntent =
+        promptLower.includes("cho mỗi") ||
+        promptLower.includes("cho từng") ||
+        promptLower.includes("từng ") ||
+        promptLower.includes("mỗi ");
+
       if (isTotalIntent) {
         userPrompt += `\n\n🎯 INTENT PHÁT HIỆN: TỔNG (1 kết quả duy nhất)`;
         userPrompt += `\n- User muốn tính TỔNG của toàn bộ dữ liệu, KHÔNG phải từng hàng`;
@@ -695,13 +737,13 @@ KHÔNG viết markdown, KHÔNG giải thích thêm, CHỈ JSON thuần.`;
         userPrompt += `\n- Dùng phép tính trực tiếp (VD: B2-C2, B2*C2)`;
         userPrompt += `\n- Công thức sẽ được apply cho tất cả hàng`;
       }
-      
+
       // Analyze intent and add hints
       const analysis = analyzeIntentWithContext(prompt, excelContext);
       if (analysis && analysis.suggestedColumns.length > 0) {
         userPrompt += `\n\n💡 GỢI Ý TỰ ĐỘNG (PHẢI DÙNG RANGE NÀY):`;
-        userPrompt += `\n- Intent phát hiện: ${analysis.intent || 'Unknown'}`;
-        userPrompt += `\n- Cột liên quan: ${analysis.suggestedColumns.map(c => `${c.column} (${c.name}, ${c.type})`).join(', ')}`;
+        userPrompt += `\n- Intent phát hiện: ${analysis.intent || "Unknown"}`;
+        userPrompt += `\n- Cột liên quan: ${analysis.suggestedColumns.map((c) => `${c.column} (${c.name}, ${c.type})`).join(", ")}`;
         if (analysis.suggestedRange) {
           userPrompt += `\n- ⚠️ PHẢI DÙNG RANGE: ${analysis.suggestedRange} (Không dùng toàn cột!)`;
           userPrompt += `\n- Giải thích: Data từ hàng 2 đến ${excelContext.rowCount}, hàng 1 là header`;
@@ -714,11 +756,15 @@ KHÔNG viết markdown, KHÔNG giải thích thêm, CHỈ JSON thuần.`;
     }
 
     const payload = {
-      contents: [{
-        parts: [{
-          text: `${systemPrompt}\n\n${userPrompt}`
-        }]
-      }],
+      contents: [
+        {
+          parts: [
+            {
+              text: `${systemPrompt}\n\n${userPrompt}`,
+            },
+          ],
+        },
+      ],
       generationConfig: {
         temperature: 0.2, // Cực thấp để SIÊU CHÍNH XÁC, không đoán mò
         maxOutputTokens: 2048, // Tăng để đủ chỗ với prompt dài
@@ -732,11 +778,11 @@ KHÔNG viết markdown, KHÔNG giải thích thêm, CHỈ JSON thuần.`;
     } catch (error) {
       // Retry with all available models
       const allModels = await listModels(getApiKey());
-      
+
       for (const model of allModels) {
         if (model === cachedModel) continue;
-        if (!model.includes('gemini')) continue;
-        
+        if (!model.includes("gemini")) continue;
+
         try {
           result = await callGenerateContent(model, payload);
           cachedModel = model;
@@ -748,25 +794,24 @@ KHÔNG viết markdown, KHÔNG giải thích thêm, CHỈ JSON thuần.`;
     }
 
     if (!result?.text) {
-      throw new Error('Tất cả models đều thất bại');
+      throw new Error("Tất cả models đều thất bại");
     }
 
     // Parse JSON response with robust error handling
     let cleanText = cleanJSONResponse(result.text);
-    
+
     let parsedResponse;
     try {
       parsedResponse = JSON.parse(cleanText);
-      
+
       // Validate structure
       if (!parsedResponse.formula && !parsedResponse.recommendations) {
-        throw new Error('Invalid response structure: missing formula or recommendations');
+        throw new Error("Invalid response structure: missing formula or recommendations");
       }
-      
     } catch (parseError) {
-      console.error('❌ JSON Parse Error:', parseError);
-      console.error('❌ Problematic JSON:', cleanText.substring(0, 500));
-      
+      console.error("❌ JSON Parse Error:", parseError);
+      console.error("❌ Problematic JSON:", cleanText.substring(0, 500));
+
       // Last attempt: Extract JSON using regex
       try {
         const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
@@ -774,28 +819,27 @@ KHÔNG viết markdown, KHÔNG giải thích thêm, CHỈ JSON thuần.`;
           let extracted = jsonMatch[0];
           extracted = cleanJSONResponse(extracted);
           parsedResponse = JSON.parse(extracted);
-          
+
           // Validate extracted JSON
           if (!parsedResponse.formula && !parsedResponse.recommendations) {
-            throw new Error('Extracted JSON still invalid');
+            throw new Error("Extracted JSON still invalid");
           }
         } else {
           throw parseError;
         }
       } catch (retryError) {
-        console.error('❌ All JSON parsing attempts failed');
-        throw new Error('Response từ AI không hợp lệ. Vui lòng thử lại với mô tả ngắn gọn hơn!');
+        console.error("❌ All JSON parsing attempts failed");
+        throw new Error("Response từ AI không hợp lệ. Vui lòng thử lại với mô tả ngắn gọn hơn!");
       }
     }
-    
+
     // Save to cache for future requests
     saveToCache(cacheKey, parsedResponse);
-    
+
     return parsedResponse;
-    
   } catch (error) {
-    console.error('Generate formula error:', error);
-    throw new Error('Không thể tạo công thức. Vui lòng thử lại!');
+    console.error("Generate formula error:", error);
+    throw new Error("Không thể tạo công thức. Vui lòng thử lại!");
   }
 }
 
@@ -807,11 +851,11 @@ export async function generateStepByStep(task) {
     // Chọn model
     if (!cachedModel) {
       const availableModels = await listModels(getApiKey());
-      
+
       if (availableModels.length === 0) {
-        throw new Error('Không tìm thấy model nào. Kiểm tra API key!');
+        throw new Error("Không tìm thấy model nào. Kiểm tra API key!");
       }
-      
+
       cachedModel = await pickAvailableModel(getApiKey());
     }
 
@@ -932,11 +976,15 @@ YÊU CẦU NGHIÊM NGẶT:
 KHÔNG viết markdown, KHÔNG giải thích thêm, CHỈ JSON thuần hợp lệ.`;
 
     const payload = {
-      contents: [{
-        parts: [{
-          text: `${systemPrompt}\n\nTask: ${task}`
-        }]
-      }],
+      contents: [
+        {
+          parts: [
+            {
+              text: `${systemPrompt}\n\nTask: ${task}`,
+            },
+          ],
+        },
+      ],
       generationConfig: {
         temperature: 0.3, // Thấp để output consistent, chi tiết chính xác
         maxOutputTokens: 10240, // Tăng để đủ chỗ với prompt dài và output chi tiết
@@ -950,11 +998,11 @@ KHÔNG viết markdown, KHÔNG giải thích thêm, CHỈ JSON thuần hợp l�
     } catch (error) {
       // Retry with all available models
       const allModels = await listModels(getApiKey());
-      
+
       for (const model of allModels) {
         if (model === cachedModel) continue;
-        if (!model.includes('gemini')) continue;
-        
+        if (!model.includes("gemini")) continue;
+
         try {
           result = await callGenerateContent(model, payload);
           cachedModel = model;
@@ -966,21 +1014,24 @@ KHÔNG viết markdown, KHÔNG giải thích thêm, CHỈ JSON thuần hợp l�
     }
 
     if (!result?.text) {
-      throw new Error('Tất cả models đều thất bại');
+      throw new Error("Tất cả models đều thất bại");
     }
 
     // Parse JSON response
     let cleanText = cleanJSONResponse(result.text);
-    
+
     let parsedResponse;
     try {
       parsedResponse = JSON.parse(cleanText);
-      
+
       // Validate structure
-      if (!parsedResponse.taskName || !parsedResponse.steps || !Array.isArray(parsedResponse.steps)) {
-        throw new Error('Invalid response structure');
+      if (
+        !parsedResponse.taskName ||
+        !parsedResponse.steps ||
+        !Array.isArray(parsedResponse.steps)
+      ) {
+        throw new Error("Invalid response structure");
       }
-      
     } catch (parseError) {
       // Last attempt: Extract JSON using regex
       try {
@@ -993,15 +1044,14 @@ KHÔNG viết markdown, KHÔNG giải thích thêm, CHỈ JSON thuần hợp l�
           throw parseError;
         }
       } catch (retryError) {
-        throw new Error('Response quá phức tạp hoặc không hợp lệ. Thử mô tả task ngắn gọn hơn!');
+        throw new Error("Response quá phức tạp hoặc không hợp lệ. Thử mô tả task ngắn gọn hơn!");
       }
     }
-    
+
     return parsedResponse;
-    
   } catch (error) {
-    console.error('Generate step by step error:', error);
-    throw new Error('Không thể tạo hướng dẫn. Vui lòng thử lại!');
+    console.error("Generate step by step error:", error);
+    throw new Error("Không thể tạo hướng dẫn. Vui lòng thử lại!");
   }
 }
 
@@ -1012,17 +1062,17 @@ KHÔNG viết markdown, KHÔNG giải thích thêm, CHỈ JSON thuần hợp l�
 export async function analyzeExcelData(excelContext) {
   try {
     if (!excelContext || !excelContext.sampleData || excelContext.sampleData.length === 0) {
-      throw new Error('Không có dữ liệu để phân tích!');
+      throw new Error("Không có dữ liệu để phân tích!");
     }
 
     // Validate request
-    validateRequest('analyze data', excelContext);
-    
+    validateRequest("analyze data", excelContext);
+
     // Chọn model
     if (!cachedModel) {
       const availableModels = await listModels(getApiKey());
       if (availableModels.length === 0) {
-        throw new Error('Không tìm thấy model nào. Kiểm tra API key!');
+        throw new Error("Không tìm thấy model nào. Kiểm tra API key!");
       }
       cachedModel = await pickAvailableModel(getApiKey());
     }
@@ -1050,9 +1100,9 @@ QUAN TRỌNG: Phải có ĐỦ 6 fields (summary, keyMetrics, trends, insights, 
 CHỈ TRẢ JSON, KHÔNG MARKDOWN.`;
 
     // Format context cho AI
-    const { formatContextForPrompt } = await import('./excelContextService.js');
+    const { formatContextForPrompt } = await import("./excelContextService.js");
     const contextText = formatContextForPrompt(excelContext);
-    
+
     const userPrompt = `${contextText}
 
 PHÂN TÍCH dữ liệu trên:
@@ -1064,11 +1114,15 @@ PHÂN TÍCH dữ liệu trên:
 ⚠️ CHỈ dùng số từ data, KHÔNG đoán. Phải có ĐỦ 6 fields JSON.`;
 
     const payload = {
-      contents: [{
-        parts: [{
-          text: `${systemPrompt}\n\n${userPrompt}`
-        }]
-      }],
+      contents: [
+        {
+          parts: [
+            {
+              text: `${systemPrompt}\n\n${userPrompt}`,
+            },
+          ],
+        },
+      ],
       generationConfig: {
         temperature: 0.2,
         topP: 0.9,
@@ -1085,7 +1139,7 @@ PHÂN TÍCH dữ liệu trên:
       const allModels = await listModels(getApiKey());
       for (const model of allModels) {
         if (model === cachedModel) continue;
-        if (!model.includes('gemini')) continue;
+        if (!model.includes("gemini")) continue;
         try {
           result = await callGenerateContent(model, payload);
           cachedModel = model;
@@ -1097,39 +1151,38 @@ PHÂN TÍCH dữ liệu trên:
     }
 
     if (!result?.text) {
-      throw new Error('Tất cả models đều thất bại');
+      throw new Error("Tất cả models đều thất bại");
     }
 
-    console.log('📊 Raw AI response:', result.text);
+    console.log("📊 Raw AI response:", result.text);
 
     // Parse JSON response
     const cleanText = cleanJSONResponse(result.text);
-    console.log('🧹 Cleaned JSON:', cleanText);
-    
+    console.log("🧹 Cleaned JSON:", cleanText);
+
     let analysis;
     try {
       analysis = JSON.parse(cleanText);
     } catch (parseError) {
-      console.error('❌ JSON Parse Error:', parseError);
-      console.error('❌ Problematic JSON:', cleanText);
-      
+      console.error("❌ JSON Parse Error:", parseError);
+      console.error("❌ Problematic JSON:", cleanText);
+
       // Fallback: trả về response mặc định
       analysis = {
-        summary: 'AI đã phân tích dữ liệu nhưng gặp lỗi định dạng. Vui lòng thử lại.',
+        summary: "AI đã phân tích dữ liệu nhưng gặp lỗi định dạng. Vui lòng thử lại.",
         keyMetrics: [],
         trends: [],
-        insights: ['Dữ liệu đã được đọc thành công'],
-        recommendations: ['Thử lại để nhận phân tích chi tiết hơn'],
+        insights: ["Dữ liệu đã được đọc thành công"],
+        recommendations: ["Thử lại để nhận phân tích chi tiết hơn"],
         warnings: [],
-        chartSuggestion: null
+        chartSuggestion: null,
       };
     }
-    
+
     return analysis;
-    
   } catch (error) {
-    console.error('Analyze data error:', error);
-    throw new Error('Không thể phân tích dữ liệu. Vui lòng thử lại!');
+    console.error("Analyze data error:", error);
+    throw new Error("Không thể phân tích dữ liệu. Vui lòng thử lại!");
   }
 }
 
@@ -1141,8 +1194,7 @@ export async function testGeminiConnection() {
     const models = await listModels(getApiKey());
     return models.length > 0;
   } catch (error) {
-    console.error('Test connection error:', error);
+    console.error("Test connection error:", error);
     return false;
   }
 }
-
