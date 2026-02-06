@@ -10,8 +10,8 @@
 
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1";
 
-// Model mặc định - KHÔNG gọi API để kiểm tra
-const DEFAULT_MODEL = "gemini-3-pro-preview";
+// Model mặc định - dùng gemini-2.5-flash (ổn định, nhanh)
+const DEFAULT_MODEL = "gemini-2.5-flash";
 
 // Cache model đã chọn
 let cachedModel = DEFAULT_MODEL;
@@ -126,7 +126,7 @@ async function callGenerateContent(modelName, payload, options = {}) {
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
 
     // Listen to external abort signal
     if (externalSignal) {
@@ -176,7 +176,7 @@ async function callGenerateContent(modelName, payload, options = {}) {
     return { text };
   } catch (error) {
     if (error.name === "AbortError") {
-      throw new Error("❌ Request timeout sau 30 giây!");
+      throw new Error("❌ Request timeout sau 60 giây!");
     }
 
     throw error;
