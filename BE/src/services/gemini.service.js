@@ -292,24 +292,35 @@ JSON SCHEMA:
   }
 }`;
 
-const GUIDE_SYSTEM_PROMPT = `Bạn là GIÁO VIÊN EXCEL chuyên nghiệp. Tạo hướng dẫn CHI TIẾT.
+const GUIDE_SYSTEM_PROMPT = `Bạn là GIÁO VIÊN EXCEL cho NGƯỜI MỚI BẮT ĐẦU. Viết hướng dẫn CỰC KỲ CHI TIẾT.
 
-QUY TẮC:
-- Mỗi bước CỰC KỲ CỤ THỂ: "Click ô A1" thay vì "Chọn dữ liệu"
-- Luôn có ví dụ thực tế
-- Luôn có tips và phím tắt
-- Cảnh báo lỗi hay gặp
+BẮT BUỘC: CHỈ TRẢ VỀ JSON THUẦN TÚY. KHÔNG có text nào khác ngoài JSON.
 
-TRẢ VỀ JSON:
+QUY TẮC QUAN TRỌNG:
+1. HƯỚNG DẪN NHƯ NGƯỜI DÙNG CHƯA BIẾT GÌ VỀ EXCEL
+2. CHỈ RÕ VỊ TRÍ CHÍNH XÁC - đừng nói "Get Data from Table" mà phải nói:
+   - "Nhìn lên thanh menu phía trên cùng"
+   - "Click tab Data (tab thứ 4 từ trái)"
+   - "Trong nhóm Get & Transform Data, click nút From Table/Range"
+3. PHÂN BIỆT CLICK TRÁI/PHẢI:
+   - "Click chuột TRÁI vào ô A1"
+   - "Click chuột PHẢI vào ô đã chọn > chọn Format Cells"
+4. MÔ TẢ ICON NẾU CẦN:
+   - "Nút Insert Function (biểu tượng fx bên trái thanh công thức)"
+5. PHÍM TẮT: Luôn đề cập nếu có
+6. NẾU CÓ CONTEXT: Sử dụng tên cột/sheet/table thực tế từ context được cung cấp thay vì A, B, C
+
+JSON OUTPUT (copy chính xác format này):
 {
-  "taskName": "Tên task rõ ràng",
+  "taskName": "Tên task ngắn gọn",
   "steps": [
     {
       "title": "Tiêu đề bước",
-      "description": "Mô tả ngắn",
-      "details": ["Hành động 1", "Hành động 2"],
-      "tips": "Mẹo hữu ích",
-      "warning": "Lỗi hay gặp"
+      "description": "Mô tả chi tiết với vị trí chính xác",
+      "details": ["Hành động cụ thể 1", "Hành động cụ thể 2"],
+      "cellToHighlight": "A1:D10 (optional - ô cần chọn)",
+      "tips": "Mẹo hữu ích (optional)",
+      "warning": "Lưu ý quan trọng (optional)"
     }
   ]
 }`;
@@ -504,7 +515,7 @@ PHÂN TÍCH dữ liệu trên:
  * @param {string} task - Task description
  * @param {object} options - { signal }
  */
-export async function generateGuide(task, options = {}) {
+export async function generateGuide(task, excelContext = null, options = {}) {
   if (!task || !task.trim()) {
     throw new Error("Task description không được rỗng!");
   }
@@ -512,12 +523,23 @@ export async function generateGuide(task, options = {}) {
   const { signal, model } = options;
   const selectedModel = ensureModel(model);
 
+  // Format context nếu có
+  let contextSection = "";
+  if (excelContext) {
+    contextSection = `\n\n[EXCEL CONTEXT]
+Sheet hiện tại: ${excelContext.sheetName || "Sheet1"}
+Columns: ${excelContext.columns?.join(", ") || "N/A"}
+${excelContext.namedTables ? `Named Tables: ${excelContext.namedTables}` : ""}
+${excelContext.sampleData ? `Sample Data:\n${JSON.stringify(excelContext.sampleData.slice(0, 3), null, 2)}` : ""}
+[END CONTEXT]`;
+  }
+
   const payload = {
     contents: [
       {
         parts: [
           {
-            text: `${GUIDE_SYSTEM_PROMPT}\n\nTask: ${task}`,
+            text: `${GUIDE_SYSTEM_PROMPT}${contextSection}\n\nTask: ${task}`,
           },
         ],
       },

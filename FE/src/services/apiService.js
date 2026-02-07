@@ -416,7 +416,7 @@ export async function analyzeExcelData(excelContext, model = null) {
  * Generate step-by-step guide
  * Gọi BE endpoint: POST /api/v1/ai/ask với type="guide"
  */
-export async function generateStepByStep(task, model = null) {
+export async function generateStepByStep(task, excelContext = null, model = null) {
   if (!task || !task.trim()) {
     throw new Error("Task description không được rỗng!");
   }
@@ -426,6 +426,7 @@ export async function generateStepByStep(task, model = null) {
     body: JSON.stringify({
       type: "guide",
       prompt: task,
+      excelContext,
       model,
     }),
   });

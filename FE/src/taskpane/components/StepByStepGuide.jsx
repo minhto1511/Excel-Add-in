@@ -1,15 +1,15 @@
 /**
  * StepByStepGuide Component - AI Step-by-Step Guide
  *
- * REFACTORED:
- * - Loại bỏ makeStyles, inline styles → CSS classes
- * - Sử dụng apiService
- * - Frontend CHỈ handle UI state + navigation
+ * ENHANCED:
+ * - Excel context support for personalized guidance
+ * - Visual cues (emoji icons)
+ * - Cell highlighting for interactive mode
  */
 
 import * as React from "react";
 import { useState } from "react";
-import { Button, Card, Field, Textarea, Spinner, Text } from "@fluentui/react-components";
+import { Button, Card, Field, Textarea, Spinner, Text, Switch } from "@fluentui/react-components";
 import {
   Sparkle24Regular,
   Lightbulb24Regular,
@@ -17,10 +17,11 @@ import {
   CheckmarkCircle24Regular,
   ChevronRight24Regular,
   ChevronLeft24Regular,
+  TargetEdit24Regular,
 } from "@fluentui/react-icons";
 
 // API Service
-import { generateStepByStep, cancelAIRequest } from "../../services/apiService";
+import { generateStepByStep, cancelAIRequest, getExcelContext } from "../../services/apiService";
 
 // Model Selector
 import ModelSelector from "./ModelSelector";
@@ -34,6 +35,9 @@ const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
   const [error, setError] = useState("");
   const [currentAbortController, setCurrentAbortController] = useState(null);
   const [selectedModel, setSelectedModel] = useState(null);
+  const [useContext, setUseContext] = useState(true); // Default ON
+  const [difficulty, setDifficulty] = useState(null);
+  const [estimatedTime, setEstimatedTime] = useState(null);
 
   const exampleTasks = [
     "Tạo biểu đồ cột từ dữ liệu",
@@ -43,8 +47,23 @@ const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
   ];
 
   /**
+   * Select cell in Excel using Office.js
+   */
+  const highlightCell = async (address) => {
+    if (!address) return;
+    try {
+      await Excel.run(async (context) => {
+        const range = context.workbook.worksheets.getActiveWorksheet().getRange(address);
+        range.select();
+        await context.sync();
+      });
+    } catch (err) {
+      console.log("Could not select cell:", err);
+    }
+  };
+
+  /**
    * Generate step-by-step guide - gọi Backend API
-   * TODO BACKEND: POST /api/guide/generate
    */
   const handleGenerate = async () => {
     if (!task.trim()) return;
@@ -58,12 +77,26 @@ const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
     setError("");
     setSteps([]);
     setCurrentStep(0);
+    setDifficulty(null);
+    setEstimatedTime(null);
 
     try {
-      // Gọi API qua apiService (auto handles auth, base URL, etc.)
-      const result = await generateStepByStep(task, selectedModel);
+      // Get Excel context if enabled
+      let excelContext = null;
+      if (useContext) {
+        try {
+          excelContext = await getExcelContext();
+        } catch (e) {
+          console.log("Could not get Excel context:", e);
+        }
+      }
+
+      // Call API with context
+      const result = await generateStepByStep(task, excelContext, selectedModel);
       setTaskName(result.taskName);
       setSteps(result.steps);
+      setDifficulty(result.difficulty);
+      setEstimatedTime(result.estimatedTime);
 
       // Notify parent to refresh credits
       if (onRequestComplete) {
@@ -134,6 +167,14 @@ const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
           />
         </Field>
 
+        {/* Context Toggle */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "12px" }}>
+          <Switch checked={useContext} onChange={(e, data) => setUseContext(data.checked)} />
+          <Text size={200} style={{ color: "#6b7280" }}>
+            Sử dụng ngữ cảnh Excel (cột, dữ liệu mẫu)
+          </Text>
+        </div>
+
         {/* Button row with Model Selector on the RIGHT */}
         <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "16px" }}>
           {!isLoading ? (
@@ -175,6 +216,15 @@ const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
           </div>
         </div>
       </Card>
+
+      {/* Task Metadata */}
+      {taskName && (
+        <Card className="card" style={{ background: "#f0fdf4", borderLeft: "4px solid #10b981" }}>
+          <Text weight="semibold" size={400}>
+            {taskName}
+          </Text>
+        </Card>
+      )}
 
       {/* Error */}
       {error && <div className="alert alert--error">{error}</div>}
@@ -219,6 +269,22 @@ const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
                 ))}
               </ul>
             </div>
+
+            {/* Highlight Cell Button */}
+            {steps[currentStep].cellToHighlight && (
+              <Button
+                appearance="outline"
+                icon={<TargetEdit24Regular />}
+                onClick={() => highlightCell(steps[currentStep].cellToHighlight)}
+                style={{
+                  marginBottom: "16px",
+                  borderColor: "#10b981",
+                  color: "#10b981",
+                }}
+              >
+                Highlight ô {steps[currentStep].cellToHighlight}
+              </Button>
+            )}
 
             {/* Tips */}
             {steps[currentStep].tips && (
@@ -276,13 +342,13 @@ const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
 
       {/* Completion */}
       {steps.length > 0 && currentStep === steps.length && (
-        <div className="completion-card">
+        <div
+          className="completion-card"
+          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}
+        >
           <CheckmarkCircle24Regular className="completion-card__icon" />
-          <Text size={500} weight="semibold" className="completion-card__title">
-            Hoàn thành! 🎉
-          </Text>
-          <Text className="completion-card__text">
-            Bạn đã hoàn thành tất cả {steps.length} bước. Hy vọng hướng dẫn này hữu ích!
+          <Text size={500} weight="semibold">
+            Hoàn thành!
           </Text>
           <Button appearance="primary" onClick={handleReset} className="btn-primary">
             Xem lại từ đầu

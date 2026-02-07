@@ -168,7 +168,7 @@ export const askAI = async (req, res) => {
           });
           break;
         case "guide":
-          aiResult = await geminiService.generateGuide(prompt, {
+          aiResult = await geminiService.generateGuide(prompt, excelContext, {
             ...options,
             model,
           });

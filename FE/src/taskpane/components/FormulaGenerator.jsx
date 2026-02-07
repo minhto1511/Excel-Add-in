@@ -164,7 +164,7 @@ const FormulaGenerator = ({ disabled = false, onRequestComplete }) => {
       </div>
 
       <Card className="card">
-        <Field label="Mô tả yêu cầu của bạn" className="form-field">
+        <Field label="Mô tả yêu cầu của bạn">
           <Textarea
             placeholder="VD: Tính tổng doanh thu từ cột D nếu ngày trong cột A là tháng này..."
             rows={4}
@@ -174,25 +174,15 @@ const FormulaGenerator = ({ disabled = false, onRequestComplete }) => {
         </Field>
 
         {/* Context Toggle */}
-        <div className="context-toggle-box">
-          <Switch
-            checked={useContext}
-            onChange={(e) => setUseContext(e.currentTarget.checked)}
-            label={
-              <div className="context-toggle-content">
-                <Eye24Regular className="context-toggle-content__icon" />
-                <div>
-                  <Text weight="semibold" className="context-toggle-title">
-                    Đọc ngữ cảnh Excel
-                  </Text>
-                </div>
-              </div>
-            }
-          />
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "12px" }}>
+          <Switch checked={useContext} onChange={(e, data) => setUseContext(data.checked)} />
+          <Text size={200} style={{ color: "#6b7280" }}>
+            Sử dụng ngữ cảnh Excel (cột, dữ liệu mẫu)
+          </Text>
         </div>
 
         {/* Button row with Model Selector on the RIGHT */}
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "16px" }}>
           {!isLoading ? (
             <Button
               appearance="primary"
