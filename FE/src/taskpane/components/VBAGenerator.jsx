@@ -21,6 +21,8 @@ import {
 // API Service
 import { generateVBACode, getExcelContext } from "../../services/apiService";
 
+import ModelSelector from "./ModelSelector";
+
 const VBAGenerator = ({ disabled = false, onRequestComplete }) => {
   const [description, setDescription] = useState("");
   const [result, setResult] = useState(null);
@@ -29,6 +31,7 @@ const VBAGenerator = ({ disabled = false, onRequestComplete }) => {
   const [copied, setCopied] = useState(false);
   const [useContext, setUseContext] = useState(true);
   const [contextInfo, setContextInfo] = useState(null);
+  const [selectedModel, setSelectedModel] = useState(null);
 
   const examplePrompts = [
     "Tô màu các hàng chẵn màu xanh nhạt",
@@ -68,7 +71,7 @@ const VBAGenerator = ({ disabled = false, onRequestComplete }) => {
       }
 
       // Gọi API
-      const vbaResult = await generateVBACode(description, excelContext);
+      const vbaResult = await generateVBACode(description, excelContext, selectedModel);
       setResult(vbaResult);
 
       // Notify parent to refresh credits
@@ -142,22 +145,33 @@ const VBAGenerator = ({ disabled = false, onRequestComplete }) => {
           />
         </div>
 
-        {!isLoading ? (
-          <Button
-            appearance="primary"
-            icon={<Code24Regular />}
-            onClick={handleGenerate}
-            disabled={!description.trim()}
-            className="btn-primary w-100"
-          >
-            Tạo VBA Code
-          </Button>
-        ) : (
-          <Button appearance="secondary" onClick={handleCancel} className="w-100">
-            <Spinner size="tiny" style={{ marginRight: "8px" }} />
-            Đang tạo code... (Nhấn để hủy)
-          </Button>
-        )}
+        {/* Button row with Model Selector on the RIGHT */}
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          {!isLoading ? (
+            <Button
+              appearance="primary"
+              icon={<Code24Regular />}
+              onClick={handleGenerate}
+              disabled={!description.trim()}
+              style={{
+                flex: 1,
+                background: "#10b981", // Green color
+                border: "none",
+                color: "white",
+              }}
+            >
+              Tạo VBA Code
+            </Button>
+          ) : (
+            <Button appearance="secondary" onClick={handleCancel} style={{ flex: 1 }}>
+              <Spinner size="tiny" style={{ marginRight: "8px" }} />
+              Đang tạo... (Hủy)
+            </Button>
+          )}
+
+          {/* Model Selector - compact on the right */}
+          <ModelSelector onModelChange={setSelectedModel} />
+        </div>
 
         <div className="mt-16">
           <Text size={200} className="d-block mb-8">

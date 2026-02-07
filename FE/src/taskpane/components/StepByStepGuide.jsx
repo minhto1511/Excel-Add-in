@@ -22,6 +22,9 @@ import {
 // API Service
 import { generateStepByStep, cancelAIRequest } from "../../services/apiService";
 
+// Model Selector
+import ModelSelector from "./ModelSelector";
+
 const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
   const [task, setTask] = useState("");
   const [taskName, setTaskName] = useState("");
@@ -30,6 +33,7 @@ const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [currentAbortController, setCurrentAbortController] = useState(null);
+  const [selectedModel, setSelectedModel] = useState(null);
 
   const exampleTasks = [
     "Tạo biểu đồ cột từ dữ liệu",
@@ -57,7 +61,7 @@ const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
 
     try {
       // Gọi API qua apiService (auto handles auth, base URL, etc.)
-      const result = await generateStepByStep(task);
+      const result = await generateStepByStep(task, selectedModel);
       setTaskName(result.taskName);
       setSteps(result.steps);
 
@@ -130,22 +134,33 @@ const StepByStepGuide = ({ disabled = false, onRequestComplete }) => {
           />
         </Field>
 
-        {!isLoading ? (
-          <Button
-            appearance="primary"
-            icon={<Sparkle24Regular />}
-            onClick={handleGenerate}
-            disabled={!task.trim()}
-            className="btn-primary w-100 mt-16"
-          >
-            Tạo hướng dẫn
-          </Button>
-        ) : (
-          <Button appearance="secondary" onClick={handleCancel} className="w-100 mt-16">
-            <Spinner size="tiny" style={{ marginRight: "8px" }} />
-            Đang tạo hướng dẫn... (Nhấn để hủy)
-          </Button>
-        )}
+        {/* Button row with Model Selector on the RIGHT */}
+        <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "16px" }}>
+          {!isLoading ? (
+            <Button
+              appearance="primary"
+              icon={<Sparkle24Regular />}
+              onClick={handleGenerate}
+              disabled={!task.trim()}
+              style={{
+                flex: 1,
+                background: "#10b981",
+                border: "none",
+                color: "white",
+              }}
+            >
+              Tạo hướng dẫn
+            </Button>
+          ) : (
+            <Button appearance="secondary" onClick={handleCancel} style={{ flex: 1 }}>
+              <Spinner size="tiny" style={{ marginRight: "8px" }} />
+              Đang tạo... (Hủy)
+            </Button>
+          )}
+
+          {/* Model Selector - compact on the right */}
+          <ModelSelector onModelChange={setSelectedModel} />
+        </div>
 
         <div className="mt-16">
           <Text size={200} className="d-block mb-8">

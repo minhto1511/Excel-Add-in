@@ -104,6 +104,9 @@ paymentIntentSchema.index(
 // Plan pricing map (VND)
 const PRICING_MAP = {
   pro_monthly: 49000,
+  pro_yearly: 470000,
+  credits_50: 20000, // Added based on context, though not explicitly asked, good to have complete map if used elsewhere
+  credits_100: 35000,
 };
 
 // Static: Generate unique transfer code

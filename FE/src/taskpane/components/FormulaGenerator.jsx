@@ -27,6 +27,8 @@ import {
   cancelAIRequest,
 } from "../../services/apiService";
 
+import ModelSelector from "./ModelSelector";
+
 const FormulaGenerator = ({ disabled = false, onRequestComplete }) => {
   const [prompt, setPrompt] = useState("");
   const [formula, setFormula] = useState("");
@@ -39,6 +41,7 @@ const FormulaGenerator = ({ disabled = false, onRequestComplete }) => {
   const [contextInfo, setContextInfo] = useState(null);
   const [insertSuccess, setInsertSuccess] = useState(false);
   const [currentAbortController, setCurrentAbortController] = useState(null);
+  const [selectedModel, setSelectedModel] = useState(null);
 
   const examplePrompts = [
     "Tính tổng các ô từ A1 đến A10",
@@ -81,7 +84,7 @@ const FormulaGenerator = ({ disabled = false, onRequestComplete }) => {
       }
 
       // Gọi API qua apiService (auto handles auth, base URL, etc.)
-      const result = await generateExcelFormula(prompt, excelContext);
+      const result = await generateExcelFormula(prompt, excelContext, selectedModel);
 
       // Xử lý trường hợp AI trả về formula rỗng (yêu cầu không rõ ràng)
       if (!result.formula || result.formula.trim() === "") {
@@ -188,22 +191,33 @@ const FormulaGenerator = ({ disabled = false, onRequestComplete }) => {
           />
         </div>
 
-        {!isLoading ? (
-          <Button
-            appearance="primary"
-            icon={<Sparkle24Regular />}
-            onClick={handleGenerate}
-            disabled={!prompt.trim()}
-            className="btn-primary w-100"
-          >
-            Tạo công thức
-          </Button>
-        ) : (
-          <Button appearance="secondary" onClick={handleCancel} className="w-100">
-            <Spinner size="tiny" style={{ marginRight: "8px" }} />
-            Đang tạo công thức... (Nhấn để hủy)
-          </Button>
-        )}
+        {/* Button row with Model Selector on the RIGHT */}
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          {!isLoading ? (
+            <Button
+              appearance="primary"
+              icon={<Sparkle24Regular />}
+              onClick={handleGenerate}
+              disabled={!prompt.trim()}
+              style={{
+                flex: 1,
+                background: "#10b981", // Green color
+                border: "none",
+                color: "white",
+              }}
+            >
+              Tạo công thức
+            </Button>
+          ) : (
+            <Button appearance="secondary" onClick={handleCancel} style={{ flex: 1 }}>
+              <Spinner size="tiny" style={{ marginRight: "8px" }} />
+              Đang tạo... (Hủy)
+            </Button>
+          )}
+
+          {/* Model Selector - compact on the right */}
+          <ModelSelector onModelChange={setSelectedModel} />
+        </div>
 
         <div className="mt-16">
           <Text size={200} className="d-block mb-8">

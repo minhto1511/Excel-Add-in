@@ -23,11 +23,15 @@ import {
 // API Service
 import { analyzeExcelData, getExcelContext, cancelAIRequest } from "../../services/apiService";
 
+// Model Selector
+import ModelSelector from "./ModelSelector";
+
 const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
   const [analysis, setAnalysis] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [currentAbortController, setCurrentAbortController] = useState(null);
+  const [selectedModel, setSelectedModel] = useState(null);
 
   /**
    * Analyze data - gọi Backend API
@@ -52,7 +56,7 @@ const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
       }
 
       // Gọi API qua apiService (auto handles auth, base URL, etc.)
-      const result = await analyzeExcelData(excelContext);
+      const result = await analyzeExcelData(excelContext, selectedModel);
       setAnalysis(result);
 
       // Notify parent to refresh credits
@@ -101,21 +105,32 @@ const DataAnalyzer = ({ disabled = false, onRequestComplete }) => {
       </div>
 
       <Card className="card">
-        {!isLoading ? (
-          <Button
-            appearance="primary"
-            icon={<Sparkle24Filled />}
-            onClick={handleAnalyze}
-            className="btn-primary w-100"
-          >
-            Phân tích dữ liệu
-          </Button>
-        ) : (
-          <Button appearance="secondary" onClick={handleCancel} className="w-100">
-            <Spinner size="tiny" style={{ marginRight: "8px" }} />
-            Đang phân tích... (Nhấn để hủy)
-          </Button>
-        )}
+        {/* Button row with Model Selector on the RIGHT */}
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          {!isLoading ? (
+            <Button
+              appearance="primary"
+              icon={<Sparkle24Filled />}
+              onClick={handleAnalyze}
+              style={{
+                flex: 1,
+                background: "#10b981",
+                border: "none",
+                color: "white",
+              }}
+            >
+              Phân tích dữ liệu
+            </Button>
+          ) : (
+            <Button appearance="secondary" onClick={handleCancel} style={{ flex: 1 }}>
+              <Spinner size="tiny" style={{ marginRight: "8px" }} />
+              Đang phân tích... (Hủy)
+            </Button>
+          )}
+
+          {/* Model Selector - compact on the right */}
+          <ModelSelector onModelChange={setSelectedModel} />
+        </div>
 
         <Text size={200} className="d-block mt-12" style={{ color: "#6b7280" }}>
           AI sẽ đọc dữ liệu trong Excel và đưa ra insights, trends, recommendations

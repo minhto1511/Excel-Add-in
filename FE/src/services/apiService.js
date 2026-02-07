@@ -371,7 +371,7 @@ export async function getPaymentHistory(page = 1, limit = 10) {
  * Generate Excel formula từ prompt
  * Gọi BE endpoint: POST /api/v1/ai/ask với type="formula"
  */
-export async function generateExcelFormula(prompt, excelContext = null) {
+export async function generateExcelFormula(prompt, excelContext = null, model = null) {
   if (!prompt || !prompt.trim()) {
     throw new Error("Prompt không được rỗng!");
   }
@@ -382,6 +382,7 @@ export async function generateExcelFormula(prompt, excelContext = null) {
       type: "formula",
       prompt,
       excelContext,
+      model,
     }),
   });
 
@@ -393,7 +394,7 @@ export async function generateExcelFormula(prompt, excelContext = null) {
  * Analyze Excel data
  * Gọi BE endpoint: POST /api/v1/ai/ask với type="analysis"
  */
-export async function analyzeExcelData(excelContext) {
+export async function analyzeExcelData(excelContext, model = null) {
   if (!excelContext || !excelContext.sampleData || excelContext.sampleData.length === 0) {
     throw new Error("Không có dữ liệu để phân tích!");
   }
@@ -404,6 +405,7 @@ export async function analyzeExcelData(excelContext) {
       type: "analysis",
       prompt: "analyze", // BE cần prompt cho cache key
       excelContext,
+      model,
     }),
   });
 
@@ -414,7 +416,7 @@ export async function analyzeExcelData(excelContext) {
  * Generate step-by-step guide
  * Gọi BE endpoint: POST /api/v1/ai/ask với type="guide"
  */
-export async function generateStepByStep(task) {
+export async function generateStepByStep(task, model = null) {
   if (!task || !task.trim()) {
     throw new Error("Task description không được rỗng!");
   }
@@ -424,6 +426,7 @@ export async function generateStepByStep(task) {
     body: JSON.stringify({
       type: "guide",
       prompt: task,
+      model,
     }),
   });
 
@@ -434,7 +437,7 @@ export async function generateStepByStep(task) {
  * Generate VBA/Macro code từ mô tả
  * Gọi BE endpoint: POST /api/v1/ai/ask với type="vba"
  */
-export async function generateVBACode(description, excelContext = null) {
+export async function generateVBACode(description, excelContext = null, model = null) {
   if (!description || !description.trim()) {
     throw new Error("Mô tả macro không được rỗng!");
   }
@@ -445,6 +448,7 @@ export async function generateVBACode(description, excelContext = null) {
       type: "vba",
       prompt: description,
       excelContext,
+      model,
     }),
   });
 

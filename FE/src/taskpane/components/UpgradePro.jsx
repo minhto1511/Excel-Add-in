@@ -77,6 +77,7 @@ const useCountdown = (targetTime) => {
 
 const UpgradePro = ({ onClose, currentPlan }) => {
   const [pricing, setPricing] = useState(null);
+  const [billingCycle, setBillingCycle] = useState("monthly"); // "monthly" | "yearly"
   const [selectedPlan, setSelectedPlan] = useState("pro_monthly");
   const [intent, setIntent] = useState(null);
   const [status, setStatus] = useState("idle"); // idle, loading, pending, paid, expired, error
@@ -248,32 +249,119 @@ const UpgradePro = ({ onClose, currentPlan }) => {
             Mở khóa sức mạnh AI không giới hạn
           </Text>
 
-          {/* Plan Selection - Simplified */}
+          {/* Billing Cycle Toggle */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: "16px",
+              background: "#f3f4f6",
+              padding: "4px",
+              borderRadius: "8px",
+              width: "fit-content",
+              margin: "0 auto 16px auto",
+            }}
+          >
+            <button
+              onClick={() => {
+                setBillingCycle("monthly");
+                setSelectedPlan("pro_monthly"); // Reset to pro monthly when switching
+              }}
+              style={{
+                padding: "6px 16px",
+                borderRadius: "6px",
+                border: "none",
+                background: billingCycle === "monthly" ? "white" : "transparent",
+                boxShadow: billingCycle === "monthly" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                fontWeight: billingCycle === "monthly" ? "600" : "400",
+                color: billingCycle === "monthly" ? "#111827" : "#6b7280",
+                cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+            >
+              Hàng tháng
+            </button>
+            <button
+              onClick={() => {
+                setBillingCycle("yearly");
+                setSelectedPlan("pro_yearly"); // Reset to pro yearly when switching
+              }}
+              style={{
+                padding: "6px 16px",
+                borderRadius: "6px",
+                border: "none",
+                background: billingCycle === "yearly" ? "white" : "transparent",
+                boxShadow: billingCycle === "yearly" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                fontWeight: billingCycle === "yearly" ? "600" : "400",
+                color: billingCycle === "yearly" ? "#111827" : "#6b7280",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                position: "relative",
+              }}
+            >
+              Hàng năm
+              <span
+                style={{
+                  position: "absolute",
+                  top: "-8px",
+                  right: "-10px",
+                  background: "#ef4444",
+                  color: "white",
+                  fontSize: "9px",
+                  padding: "2px 4px",
+                  borderRadius: "4px",
+                  fontWeight: "bold",
+                }}
+              >
+                -20%
+              </span>
+            </button>
+          </div>
+
           <RadioGroup
             value={selectedPlan}
             onChange={(e, data) => setSelectedPlan(data.value)}
             style={{ marginBottom: "16px" }}
           >
-            {/* Gói Phổ thông 49k */}
+            {/* Gói Pro */}
             <Card
               style={{
                 width: "100%",
                 padding: "12px",
                 marginBottom: "8px",
-                border: selectedPlan === "pro_monthly" ? "2px solid #10b981" : "1px solid #e5e7eb",
-                background: selectedPlan === "pro_monthly" ? "#ecfdf5" : "transparent",
+                border:
+                  selectedPlan === (billingCycle === "monthly" ? "pro_monthly" : "pro_yearly")
+                    ? "2px solid #10b981"
+                    : "1px solid #e5e7eb",
+                background:
+                  selectedPlan === (billingCycle === "monthly" ? "pro_monthly" : "pro_yearly")
+                    ? "#ecfdf5"
+                    : "transparent",
                 cursor: "pointer",
               }}
-              onClick={() => setSelectedPlan("pro_monthly")}
+              onClick={() =>
+                setSelectedPlan(billingCycle === "monthly" ? "pro_monthly" : "pro_yearly")
+              }
             >
               <div
-                style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <Radio value="pro_monthly" />
+                  <Radio
+                    value={billingCycle === "monthly" ? "pro_monthly" : "pro_yearly"}
+                    checked={
+                      selectedPlan === (billingCycle === "monthly" ? "pro_monthly" : "pro_yearly")
+                    }
+                  />
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <Text weight="semibold">Gói Pro</Text>
+                      <Text weight="semibold">
+                        {billingCycle === "monthly" ? "Gói Pro (Tháng)" : "Gói Pro (Năm)"}
+                      </Text>
                       <span
                         style={{
                           background: "#10b981",
@@ -292,13 +380,18 @@ const UpgradePro = ({ onClose, currentPlan }) => {
                     </Text>
                   </div>
                 </div>
-                <Text weight="bold" style={{ color: "#059669", fontSize: "18px" }}>
-                  49.000 ₫
-                </Text>
+                <div style={{ textAlign: "right" }}>
+                  <Text
+                    weight="bold"
+                    style={{ color: "#059669", fontSize: "18px", display: "block" }}
+                  >
+                    {billingCycle === "monthly" ? "49.000 ₫" : "470.000 ₫"}
+                  </Text>
+                </div>
               </div>
             </Card>
 
-            {/* Gói Sinh viên 39k - Dẫn sang Fanpage */}
+            {/* Gói Sinh viên - Dẫn sang Fanpage */}
             <Card
               style={{
                 width: "100%",
@@ -311,13 +404,21 @@ const UpgradePro = ({ onClose, currentPlan }) => {
               onClick={() => setSelectedPlan("student")}
             >
               <div
-                style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <Radio value="student" />
+                  <Radio value="student" checked={selectedPlan === "student"} />
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <Text weight="semibold">Gói Sinh Viên</Text>
+                      <Text weight="semibold">
+                        {billingCycle === "monthly"
+                          ? "Gói Sinh Viên (Tháng)"
+                          : "Gói Sinh Viên (Năm)"}
+                      </Text>
                       <span
                         style={{
                           background: "#3b82f6",
@@ -336,9 +437,14 @@ const UpgradePro = ({ onClose, currentPlan }) => {
                     </Text>
                   </div>
                 </div>
-                <Text weight="bold" style={{ color: "#3b82f6", fontSize: "18px" }}>
-                  39.000 ₫
-                </Text>
+                <div style={{ textAlign: "right" }}>
+                  <Text
+                    weight="bold"
+                    style={{ color: "#3b82f6", fontSize: "18px", display: "block" }}
+                  >
+                    {billingCycle === "monthly" ? "39.000 ₫" : "468.000 ₫"}
+                  </Text>
+                </div>
               </div>
             </Card>
           </RadioGroup>

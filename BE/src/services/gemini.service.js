@@ -8,10 +8,17 @@
  * - Các prompts cho formula, analysis, guide
  */
 
-const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1";
+const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 
 // Model mặc định - dùng gemini-2.5-flash (ổn định, nhanh)
 const DEFAULT_MODEL = "gemini-2.5-flash";
+
+// Allowed models (whitelist)
+const ALLOWED_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-3-flash-preview",
+  "gemini-3-pro-preview",
+];
 
 // Cache model đã chọn
 let cachedModel = DEFAULT_MODEL;
@@ -184,10 +191,16 @@ async function callGenerateContent(modelName, payload, options = {}) {
 }
 
 /**
- * Đảm bảo có model - KHÔNG gọi listModels để tiết kiệm request
+ * Đảm bảo có model - validate và return
  */
-async function ensureModel() {
-  // Dùng thẳng DEFAULT_MODEL thay vì gọi API
+function ensureModel(requestedModel) {
+  // Nếu có model từ request và nằm trong whitelist
+  if (requestedModel && ALLOWED_MODELS.includes(requestedModel)) {
+    console.log(`🤖 Using requested model: ${requestedModel}`);
+    return requestedModel;
+  }
+  // Fallback to default
+  console.log(`🤖 Using default model: ${DEFAULT_MODEL}`);
   return cachedModel || DEFAULT_MODEL;
 }
 
@@ -197,6 +210,8 @@ async function ensureModel() {
 
 const FORMULA_SYSTEM_PROMPT = `Bạn là CHUYÊN GIA EXCEL (15 năm kinh nghiệm), chuyên sâu về Excel 365/2024.
 Nhiệm vụ: Tạo công thức Excel chính xác, hiện đại, và trả về kết quả dưới dạng JSON.
+
+⚠️ QUAN TRỌNG: CHỈ TRẢ VỀ JSON THUẦN TÚY. KHÔNG GIẢI THÍCH, KHÔNG SUY LUẬN, KHÔNG VIẾT CHỮ TRƯỚC/SAU JSON.
 
 ---
 QUY TẮC CỐT LÕI (BẮT BUỘC TUÂN THỦ):
@@ -228,20 +243,12 @@ QUY TẮC CỐT LÕI (BẮT BUỘC TUÂN THỦ):
      Ví dụ: =COUNTIF(Products[Active], <<Q>>Y<<Q>>)
 
 ---
-OUTPUT JSON FORMAT:
+OUTPUT: CHỈ TRẢ VỀ JSON, KHÔNG CÓ GÌ KHÁC!
 {
   "formula": "Chuỗi công thức bắt đầu bằng dấu =",
-  "explanation": "Giải thích ngắn gọn (dưới 30 từ), đề cập rõ logic xử lý dữ liệu (VD: Đếm các dòng có giá trị là 'Y').",
-  "example": "Ví dụ minh họa kết quả (VD: Trả về 15)",
-  "warning": "Cảnh báo nếu thiếu dữ liệu mẫu để xác định chính xác giá trị (VD: Cần kiểm tra cột Active là TRUE hay 'Y'). Để trống nếu không có cảnh báo."
-}
-
----
-[CONTEXT]:
-{{INSERT_CONTEXT_HERE}}
-
-[USER REQUEST]:
-{{INSERT_USER_REQUEST_HERE}}`;
+  "explanation": "Giải thích ngắn gọn (dưới 30 từ)",
+  "example": "Ví dụ minh họa kết quả"
+}`;
 
 const ANALYSIS_SYSTEM_PROMPT = `Bạn là DATA ANALYST chuyên nghiệp. Nhiệm vụ: Phân tích dữ liệu và trả về JSON.
 
@@ -353,7 +360,8 @@ export async function generateFormula(
   excelContext = null,
   options = {},
 ) {
-  const model = await ensureModel();
+  const { signal, model } = options;
+  const selectedModel = ensureModel(model);
 
   let userPrompt = `Yêu cầu: ${prompt}`;
 
@@ -380,10 +388,12 @@ export async function generateFormula(
     generationConfig: {
       temperature: 0.1,
       maxOutputTokens: 4096,
+      // QUAN TRỌNG: Bắt buộc Gemini 3 trả về JSON thuần túy
+      responseMimeType: "application/json",
     },
   };
 
-  const result = await callGenerateContent(model, payload, options);
+  const result = await callGenerateContent(selectedModel, payload, options);
   const cleanText = cleanJSONResponse(result.text);
 
   try {
@@ -427,7 +437,8 @@ export async function analyzeData(excelContext, options = {}) {
     throw new Error("Không có dữ liệu để phân tích!");
   }
 
-  const model = await ensureModel();
+  const { signal, model } = options;
+  const selectedModel = ensureModel(model);
 
   const contextText = formatContextForPrompt(excelContext);
   const userPrompt = `${contextText}
@@ -453,10 +464,11 @@ PHÂN TÍCH dữ liệu trên:
     generationConfig: {
       temperature: 0.2,
       maxOutputTokens: 8192,
+      responseMimeType: "application/json",
     },
   };
 
-  const result = await callGenerateContent(model, payload, options);
+  const result = await callGenerateContent(selectedModel, payload, options);
   const cleanText = cleanJSONResponse(result.text);
 
   try {
@@ -497,7 +509,8 @@ export async function generateGuide(task, options = {}) {
     throw new Error("Task description không được rỗng!");
   }
 
-  const model = await ensureModel();
+  const { signal, model } = options;
+  const selectedModel = ensureModel(model);
 
   const payload = {
     contents: [
@@ -512,10 +525,11 @@ export async function generateGuide(task, options = {}) {
     generationConfig: {
       temperature: 0.3,
       maxOutputTokens: 10240,
+      responseMimeType: "application/json",
     },
   };
 
-  const result = await callGenerateContent(model, payload, options);
+  const result = await callGenerateContent(selectedModel, payload, options);
   const cleanText = cleanJSONResponse(result.text);
 
   try {
@@ -573,7 +587,8 @@ export async function generateVBA(
   console.log("📝 Generating VBA for:", description.substring(0, 50));
 
   try {
-    const model = await ensureModel();
+    const { signal, model } = options;
+    const selectedModel = ensureModel(model);
 
     let userPrompt = `Yêu cầu: ${description}`;
 
@@ -601,11 +616,12 @@ export async function generateVBA(
       generationConfig: {
         temperature: 0.2,
         maxOutputTokens: 8192,
+        responseMimeType: "application/json",
       },
     };
 
     console.log("🚀 Calling Gemini for VBA...");
-    const result = await callGenerateContent(model, payload, options);
+    const result = await callGenerateContent(selectedModel, payload, options);
     const cleanText = cleanJSONResponse(result.text);
 
     try {
@@ -804,6 +820,25 @@ function formatLightweightContext(context) {
         contextText += `  - ${table.name || "Table"}: ${cols}${
           table.columns && table.columns.length > 8 ? "..." : ""
         } (${table.rowCount || "?"} rows)\n`;
+      });
+    }
+
+    // SAMPLE DATA (2-3 rows để AI hiểu format dữ liệu)
+    if (
+      context.sampleData &&
+      Array.isArray(context.sampleData) &&
+      context.sampleData.length > 0
+    ) {
+      const sampleRows = context.sampleData.slice(0, 3);
+      contextText += `\nSample Data (${sampleRows.length} rows):\n`;
+      sampleRows.forEach((row, idx) => {
+        if (!row) return;
+        const rowNum = row._rowNumber || idx + 2;
+        const entries = Object.entries(row)
+          .filter(([k]) => k !== "_rowNumber")
+          .slice(0, 6);
+        const rowStr = entries.map(([k, v]) => `${k}="${v}"`).join(", ");
+        contextText += `  Row ${rowNum}: ${rowStr}${Object.keys(row).length > 7 ? "..." : ""}\n`;
       });
     }
   } catch (err) {

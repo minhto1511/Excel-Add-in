@@ -158,7 +158,7 @@ export const getPricing = async (req, res) => {
           "Không giới hạn AI prompts",
           "Phân tích dữ liệu nâng cao",
           "Hỗ trợ ưu tiên",
-          "Tiết kiệm 17%",
+          "Tiết kiệm 20%",
         ],
         period: "1 năm",
       },

@@ -12,7 +12,7 @@ export const askAI = async (req, res) => {
   const requestId = crypto.randomBytes(16).toString("hex");
 
   try {
-    const { prompt, type, excelContext } = req.body;
+    const { prompt, type, excelContext, model } = req.body;
     const user = req.user;
 
     console.log("=== AI REQUEST RECEIVED ===");
@@ -156,24 +156,28 @@ export const askAI = async (req, res) => {
 
       switch (type) {
         case "formula":
-          aiResult = await geminiService.generateFormula(
-            prompt,
-            excelContext,
-            options,
-          );
+          aiResult = await geminiService.generateFormula(prompt, excelContext, {
+            ...options,
+            model,
+          });
           break;
         case "analysis":
-          aiResult = await geminiService.analyzeData(excelContext, options);
+          aiResult = await geminiService.analyzeData(excelContext, {
+            ...options,
+            model,
+          });
           break;
         case "guide":
-          aiResult = await geminiService.generateGuide(prompt, options);
+          aiResult = await geminiService.generateGuide(prompt, {
+            ...options,
+            model,
+          });
           break;
         case "vba":
-          aiResult = await geminiService.generateVBA(
-            prompt,
-            excelContext,
-            options,
-          );
+          aiResult = await geminiService.generateVBA(prompt, excelContext, {
+            ...options,
+            model,
+          });
           break;
       }
     } catch (aiError) {
