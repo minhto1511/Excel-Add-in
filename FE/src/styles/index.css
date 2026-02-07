@@ -130,8 +130,8 @@
 }
 
 .tabs-container {
-  padding: 16px 20px 0 20px;
-  background-color: var(--bg-secondary);
+  padding: 0 12px;
+  background: #ffffff;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -1715,4 +1715,541 @@ button.btn-primary:hover {
   margin-top: 24px;
   border: 1px solid var(--info-text);
   border-left-width: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   19. CHART & PIVOT TABLE ACTION STYLES
+   ═══════════════════════════════════════════════════════════════════ */
+
+.card--chart {
+  border-left: 4px solid #10b981;
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+}
+
+.card--pivot {
+  border-left: 4px solid #6366f1;
+  background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+}
+
+.chart-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.chart-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Chart suggestion detail rows */
+.chart-suggestion-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: var(--radius-sm);
+  border: 1px solid #d1fae5;
+  margin-bottom: 8px;
+}
+
+.chart-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-detail-row > span:last-child {
+  text-align: right;
+  word-break: break-word;
+  max-width: 60%;
+}
+
+.action-feedback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  margin-top: 8px;
+  animation: slideUp 0.3s ease-out;
+}
+
+.action-feedback--success {
+  background-color: #ecfdf5;
+  color: #047857;
+  border: 1px solid #86efac;
+}
+
+.action-feedback--error {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+/* Pivot Config Preview */
+.pivot-config-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  border: 1px solid #e0e7ff;
+}
+
+.pivot-field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pivot-field-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pivot-field-tag {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pivot-field-tag--row {
+  background-color: #e0e7ff;
+  color: #4338ca;
+}
+
+.pivot-field-tag--value {
+  background-color: #d1fae5;
+  color: #047857;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   20. TEMPLATE GALLERY STYLES
+   ═══════════════════════════════════════════════════════════════════ */
+
+.template-search {
+  margin-bottom: 12px;
+}
+
+.template-categories {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.template-categories::-webkit-scrollbar {
+  height: 3px;
+}
+
+.template-categories::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 3px;
+}
+
+.template-category-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  background: white;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.template-category-btn:hover {
+  border-color: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.template-category-btn--active {
+  background: var(--primary-gradient);
+  color: white;
+  border-color: transparent;
+}
+
+.template-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.template-card {
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.template-card:hover {
+  border-color: var(--primary-light);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.template-card--expanded {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-lg);
+}
+
+.template-card-header {
+  /* Header always visible */
+}
+
+.template-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.template-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.template-tag {
+  padding: 2px 8px;
+  background-color: #f3f4f6;
+  border-radius: 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.template-card-body {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+  animation: slideUp 0.3s ease-out;
+}
+
+.template-preview {
+  margin-bottom: 12px;
+}
+
+.template-headers-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.template-header-chip {
+  padding: 3px 10px;
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+  color: white;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.template-ai-prompt {
+  padding: 12px;
+  background: #ecfdf5;
+  border-radius: var(--radius-sm);
+  border: 1px dashed #86efac;
+  margin-bottom: 12px;
+}
+
+.template-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Tip Content */
+.tip-content-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tip-item {
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--primary-color);
+}
+
+.tip-examples {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0 0;
+}
+
+.tip-examples li {
+  padding: 4px 0;
+  padding-left: 12px;
+  position: relative;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.tip-examples li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: var(--primary-color);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   21. RESPONSIVE & NARROW TASKPANE FIXES
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Taskpane thường có width 350-400px */
+@media (max-width: 420px) {
+  .page-container {
+    padding: 12px;
+  }
+
+  .page-header {
+    margin-bottom: 16px;
+  }
+
+  .page-title {
+    font-size: 18px;
+    gap: 8px;
+  }
+
+  .page-subtitle {
+    font-size: 12px;
+  }
+
+  .card {
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  /* Metrics grid: 1 column on very narrow screens */
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .metric-card {
+    padding: 12px;
+  }
+
+  .tabs-container {
+    padding: 0 8px;
+  }
+
+  /* User info bar compact */
+  .user-info-bar {
+    padding: 6px 12px;
+    gap: 8px;
+  }
+
+  .user-info span {
+    max-width: 100px;
+  }
+
+  /* Formula box smaller font */
+  .formula-box {
+    font-size: 13px;
+    padding: 12px;
+  }
+
+  /* Button groups: stack vertically on very narrow */
+  .button-group {
+    flex-direction: column;
+  }
+
+  /* Chart actions full width */
+  .chart-actions {
+    flex-direction: column;
+  }
+
+  /* Trend items compact */
+  .trend-item {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .trend-content {
+    font-size: 13px;
+  }
+
+  /* Insight/Recommendation items compact */
+  .insight-item,
+  .recommendation-item,
+  .warning-item {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  /* Step header compact */
+  .step-header {
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+  }
+
+  .step-number {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .step-title {
+    font-size: 15px;
+  }
+
+  /* VBA code box */
+  .vba-pre {
+    font-size: 11px;
+    padding: 12px;
+    max-height: 300px;
+  }
+
+  /* Template gallery compact */
+  .template-card {
+    padding: 12px;
+  }
+
+  .template-card-title-row {
+    flex-wrap: wrap;
+  }
+
+  /* Empty state compact */
+  .empty-state {
+    padding: 32px 16px;
+  }
+
+  .loading-card {
+    padding: 32px 16px;
+  }
+
+  /* OTP inputs smaller on narrow */
+  .otp-input {
+    width: 40px;
+    height: 48px;
+    font-size: 20px;
+  }
+
+  /* Admin overlay uses full width */
+  .admin-tabs [role="tablist"] {
+    width: 120px;
+    padding: 8px 0;
+  }
+
+  .admin-content {
+    padding: 12px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Upgrade dialog compact */
+  .upgrade-container {
+    padding: 12px;
+  }
+
+  .plan-card {
+    padding: 10px;
+  }
+}
+
+/* Extra narrow (below 300px - rare but possible) */
+@media (max-width: 300px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .example-chips {
+    flex-direction: column;
+  }
+
+  .template-categories {
+    flex-wrap: nowrap;
+  }
+
+  .app-header {
+    padding: 10px 12px;
+  }
+}
+
+/* Loading card text */
+.loading-card__text {
+  margin-top: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* ============================================================
+   EXCEL TOOLS - Chip selectors for chart builder
+   ============================================================ */
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 5px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 16px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  color: #374151;
+  transition: all 0.15s ease;
+  line-height: 1.3;
+}
+
+.chip:hover {
+  border-color: #10b981;
+  color: #059669;
+}
+
+.chip--green {
+  background: #10b981;
+  color: #fff;
+  border-color: #10b981;
+}
+
+.chip--green:hover {
+  background: #059669;
+  border-color: #059669;
+  color: #fff;
+}
+
+.chip--blue {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+}
+
+.chip--blue:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
 }

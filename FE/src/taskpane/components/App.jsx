@@ -30,6 +30,8 @@ import {
   Star24Regular,
   Settings24Regular,
   Code24Regular,
+  BookOpen24Regular,
+  Wrench24Regular,
 } from "@fluentui/react-icons";
 
 // Components
@@ -42,6 +44,8 @@ import History from "./History";
 import UpgradePro from "./UpgradePro";
 import AdminDashboard from "./admin/AdminDashboard";
 import VBAGenerator from "./VBAGenerator";
+import TemplateGallery from "./TemplateGallery";
+import ExcelTools from "./ExcelTools";
 
 // API Service
 import { isLoggedIn, getProfile, getCredits, logout } from "../../services/apiService";
@@ -141,9 +145,7 @@ const App = (props) => {
     setCredits(null);
   };
 
-  const handleTabChange = (event, data) => {
-    setSelectedTab(data.value);
-  };
+  const handleTabChange = (_, data) => setSelectedTab(data.value);
 
   // Refresh credits after AI request
   const refreshCredits = async () => {
@@ -268,24 +270,20 @@ const App = (props) => {
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Fluent UI Tabs - compact vertical layout (icon top, label bottom) */}
       <div className="tabs-container">
-        <TabList selectedValue={selectedTab} onTabSelect={handleTabChange} size="medium">
-          <Tab value="formula" icon={<Sparkle24Regular />}>
-            Công thức
-          </Tab>
-          <Tab value="analyzer" icon={<DataUsage24Regular />}>
-            Phân tích
-          </Tab>
-          <Tab value="stepbystep" icon={<Lightbulb24Regular />}>
-            Hướng dẫn
-          </Tab>
-          <Tab value="vba" icon={<Code24Regular />}>
-            VBA
-          </Tab>
-          <Tab value="history" icon={<History24Regular />}>
-            Lịch sử
-          </Tab>
+        <TabList
+          selectedValue={selectedTab}
+          onTabSelect={handleTabChange}
+          size="small"
+        >
+          <Tab value="formula" icon={<Sparkle24Regular />}>Công thức</Tab>
+          <Tab value="analyzer" icon={<DataUsage24Regular />}>Phân tích</Tab>
+          <Tab value="stepbystep" icon={<Lightbulb24Regular />}>Hướng dẫn</Tab>
+          <Tab value="vba" icon={<Code24Regular />}>VBA</Tab>
+          <Tab value="tools" icon={<Wrench24Regular />}>Công cụ</Tab>
+          <Tab value="templates" icon={<BookOpen24Regular />}>Mẫu</Tab>
+          <Tab value="history" icon={<History24Regular />}>Lịch sử</Tab>
         </TabList>
       </div>
 
@@ -315,6 +313,8 @@ const App = (props) => {
             onRequestComplete={refreshCredits}
           />
         )}
+        {selectedTab === "tools" && <ExcelTools />}
+        {selectedTab === "templates" && <TemplateGallery />}
         {selectedTab === "history" && <History />}
       </div>
 
