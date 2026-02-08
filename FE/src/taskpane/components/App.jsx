@@ -19,6 +19,7 @@ import {
   Dialog,
   DialogSurface,
   DialogBody,
+  Tooltip,
 } from "@fluentui/react-components";
 import {
   Sparkle24Regular,
@@ -233,19 +234,25 @@ const App = (props) => {
         </div>
         <div className="user-actions">
           {user?.role === "admin" && (
+            <Tooltip content="Quản trị hệ thống" relationship="label" positioning="below">
+              <Button
+                appearance="subtle"
+                size="small"
+                icon={<Settings24Regular />}
+                onClick={() => setIsAdminViewOpen(true)}
+                aria-label="Quản trị hệ thống"
+              />
+            </Tooltip>
+          )}
+          <Tooltip content="Đăng xuất" relationship="label" positioning="below">
             <Button
               appearance="subtle"
-              icon={<Settings24Regular />}
-              onClick={() => setIsAdminViewOpen(true)}
-              title="Quản trị hệ thống"
+              size="small"
+              icon={<SignOut24Regular />}
+              onClick={handleLogout}
+              aria-label="Đăng xuất"
             />
-          )}
-          <Button
-            appearance="subtle"
-            icon={<SignOut24Regular />}
-            onClick={handleLogout}
-            title="Đăng xuất"
-          />
+          </Tooltip>
         </div>
       </div>
 
