@@ -103,7 +103,7 @@ const userSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Indexes
@@ -222,7 +222,7 @@ userSchema.methods.addRefreshToken = async function (token, userAgent, ip) {
 userSchema.methods.verifyRefreshToken = async function (token) {
   // Remove expired tokens first
   this.refreshTokens = this.refreshTokens.filter(
-    (rt) => rt.expiresAt > new Date()
+    (rt) => rt.expiresAt > new Date(),
   );
 
   for (let i = 0; i < this.refreshTokens.length; i++) {
@@ -254,7 +254,7 @@ userSchema.methods.activateAccount = async function () {
 // Method: Upgrade to Pro
 userSchema.methods.upgradeToPro = async function (
   plan,
-  paymentIntentId = null
+  paymentIntentId = null,
 ) {
   this.subscription.plan = "pro";
   this.subscription.status = "active";
@@ -268,6 +268,12 @@ userSchema.methods.upgradeToPro = async function (
   } else if (plan === "pro_yearly") {
     const endDate = new Date();
     endDate.setFullYear(endDate.getFullYear() + 1);
+    this.subscription.endDate = endDate;
+    this.subscription.nextBillingDate = endDate;
+  } else {
+    // Fallback: nếu plan không rõ ràng → mặc định +1 tháng
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 1);
     this.subscription.endDate = endDate;
     this.subscription.nextBillingDate = endDate;
   }

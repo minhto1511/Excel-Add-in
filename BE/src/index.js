@@ -17,6 +17,36 @@ const startServer = async () => {
     await connectDB();
     console.log("MongoDB connected successfully!");
 
+    // [AUTO-FIX] Fix PRO users thiếu endDate (chạy 1 lần khi khởi động)
+    try {
+      const User = (await import("./models/User.js")).default;
+      const defaultEndDate = new Date();
+      defaultEndDate.setMonth(defaultEndDate.getMonth() + 1);
+
+      const result = await User.updateMany(
+        {
+          "subscription.plan": "pro",
+          $or: [
+            { "subscription.endDate": null },
+            { "subscription.endDate": { $exists: false } },
+          ],
+        },
+        {
+          $set: {
+            "subscription.endDate": defaultEndDate,
+            "subscription.nextBillingDate": defaultEndDate,
+          },
+        },
+      );
+      if (result.modifiedCount > 0) {
+        console.log(
+          `[AUTO-FIX] Fixed ${result.modifiedCount} PRO users missing endDate (set to ${defaultEndDate.toISOString()})`,
+        );
+      }
+    } catch (fixErr) {
+      console.error("[AUTO-FIX] Failed:", fixErr.message);
+    }
+
     app.on("error", (error) => {
       console.error("=== APP ERROR ===");
       console.error("Error:", error);
