@@ -106,8 +106,22 @@ const AdminUsers = () => {
               users.map((user) => (
                 <TableRow key={user._id}>
                   <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{getPlanBadge(user.subscription?.plan)}</TableCell>
+                  <TableCell>
+                    <div
+                      style={{
+                        maxWidth: "160px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                      title={user.email}
+                    >
+                      {user.email}
+                    </div>
+                  </TableCell>
+                  <TableCell style={{ minWidth: "55px" }}>
+                    {getPlanBadge(user.subscription?.plan)}
+                  </TableCell>
                   <TableCell>
                     {user.subscription?.endDate
                       ? new Date(user.subscription.endDate).toLocaleDateString("vi-VN")

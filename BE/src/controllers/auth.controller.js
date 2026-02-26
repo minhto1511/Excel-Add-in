@@ -90,17 +90,17 @@ export const register = async (req, res) => {
       }
     }
 
-    // Check OTP rate limit
-    const canSendOTP = await OTPToken.checkRateLimit(
-      email.toLowerCase(),
-      "signup"
-    );
-    if (!canSendOTP) {
-      return res.status(429).json({
-        error: "OTP_RATE_LIMIT",
-        message: "Quá nhiều yêu cầu OTP, vui lòng thử lại sau 1 giờ",
-      });
-    }
+    // [TESTING] Tạm comment OTP rate limit để test nhiều
+    // const canSendOTP = await OTPToken.checkRateLimit(
+    //   email.toLowerCase(),
+    //   "signup"
+    // );
+    // if (!canSendOTP) {
+    //   return res.status(429).json({
+    //     error: "OTP_RATE_LIMIT",
+    //     message: "Quá nhiều yêu cầu OTP, vui lòng thử lại sau 1 giờ",
+    //   });
+    // }
 
     // Create user (pending status)
     const user = await User.create({
@@ -116,7 +116,7 @@ export const register = async (req, res) => {
       email.toLowerCase(),
       "signup",
       user._id,
-      clientInfo
+      clientInfo,
     );
 
     // ✅ CRITICAL: Return response IMMEDIATELY - don't block on email
@@ -132,7 +132,7 @@ export const register = async (req, res) => {
         const emailResult = await emailService.sendOTP(email, otp, "signup");
         console.log(
           `[Register] OTP email sent for ${email}:`,
-          emailResult.correlationId
+          emailResult.correlationId,
         );
 
         // Update audit log with correlation ID for tracing
@@ -147,12 +147,12 @@ export const register = async (req, res) => {
               "metadata.emailCorrelationId": emailResult.correlationId,
               "metadata.emailDuration": emailResult.duration,
             },
-          }
+          },
         );
       } catch (err) {
         console.error(
           `[Register] Failed to send signup OTP email for ${email}:`,
-          err.message
+          err.message,
         );
         // Email failure doesn't block user registration
         // User can request resend if needed
@@ -166,7 +166,7 @@ export const register = async (req, res) => {
       ...clientInfo,
       status: "success",
     }).catch((err) =>
-      console.error("[Register] Audit log failed:", err.message)
+      console.error("[Register] Audit log failed:", err.message),
     );
 
     AuditLog.log("otp_sent", {
@@ -175,7 +175,7 @@ export const register = async (req, res) => {
       ...clientInfo,
       metadata: { purpose: "signup" },
     }).catch((err) =>
-      console.error("[Register] Audit log failed:", err.message)
+      console.error("[Register] Audit log failed:", err.message),
     );
 
     console.log(`[Register] Response sent, email queued for ${email}`);
@@ -212,7 +212,7 @@ export const verifyEmailOTP = async (req, res) => {
     // Find OTP token
     const otpToken = await OTPToken.findActiveOTP(
       email.toLowerCase(),
-      "signup"
+      "signup",
     );
 
     if (!otpToken) {
@@ -263,7 +263,7 @@ export const verifyEmailOTP = async (req, res) => {
     await user.addRefreshToken(
       refreshToken,
       clientInfo.userAgent,
-      clientInfo.ip
+      clientInfo.ip,
     );
 
     // Audit logs
@@ -313,32 +313,32 @@ export const resendOTP = async (req, res) => {
       });
     }
 
-    // Check rate limit
-    const canSendOTP = await OTPToken.checkRateLimit(
-      email.toLowerCase(),
-      purpose
-    );
-    if (!canSendOTP) {
-      return res.status(429).json({
-        error: "OTP_RATE_LIMIT",
-        message: "Quá nhiều yêu cầu OTP, vui lòng thử lại sau 1 giờ",
-      });
-    }
+    // [TESTING] Tạm comment rate limit & cooldown để test nhiều
+    // const canSendOTP = await OTPToken.checkRateLimit(
+    //   email.toLowerCase(),
+    //   purpose
+    // );
+    // if (!canSendOTP) {
+    //   return res.status(429).json({
+    //     error: "OTP_RATE_LIMIT",
+    //     message: "Quá nhiều yêu cầu OTP, vui lòng thử lại sau 1 giờ",
+    //   });
+    // }
 
-    // Find active OTP to check cooldown
-    const existingOTP = await OTPToken.findActiveOTP(
-      email.toLowerCase(),
-      purpose
-    );
-    if (existingOTP && !existingOTP.canResend()) {
-      const cooldownRemaining = existingOTP.getRemainingCooldown();
-      return res.status(429).json({
-        error: "RESEND_COOLDOWN",
-        message: `Vui lòng chờ ${cooldownRemaining} giây trước khi gửi lại`,
-        cooldownRemaining,
-        resendsRemaining: 3 - existingOTP.resendCount,
-      });
-    }
+    // [TESTING] Tạm comment cooldown check
+    // const existingOTP = await OTPToken.findActiveOTP(
+    //   email.toLowerCase(),
+    //   purpose
+    // );
+    // if (existingOTP && !existingOTP.canResend()) {
+    //   const cooldownRemaining = existingOTP.getRemainingCooldown();
+    //   return res.status(429).json({
+    //     error: "RESEND_COOLDOWN",
+    //     message: `Vui lòng chờ ${cooldownRemaining} giây trước khi gửi lại`,
+    //     cooldownRemaining,
+    //     resendsRemaining: 3 - existingOTP.resendCount,
+    //   });
+    // }
 
     // Find user
     const user = await User.findOne({ email: email.toLowerCase() });
@@ -363,7 +363,7 @@ export const resendOTP = async (req, res) => {
       email.toLowerCase(),
       purpose,
       user?._id || null,
-      clientInfo
+      clientInfo,
     );
 
     // ✅ Return response IMMEDIATELY
@@ -378,7 +378,7 @@ export const resendOTP = async (req, res) => {
         const emailResult = await emailService.sendOTP(email, otp, purpose);
         console.log(
           `[ResendOTP] Email sent for ${email}:`,
-          emailResult.correlationId
+          emailResult.correlationId,
         );
 
         // Update audit log with correlation ID
@@ -394,12 +394,12 @@ export const resendOTP = async (req, res) => {
               "metadata.emailDuration": emailResult.duration,
               "metadata.isResend": true,
             },
-          }
+          },
         );
       } catch (err) {
         console.error(
           `[ResendOTP] Failed to send email for ${email}:`,
-          err.message
+          err.message,
         );
       }
     });
@@ -411,7 +411,7 @@ export const resendOTP = async (req, res) => {
       ...clientInfo,
       metadata: { purpose, isResend: true },
     }).catch((err) =>
-      console.error("[ResendOTP] Audit log failed:", err.message)
+      console.error("[ResendOTP] Audit log failed:", err.message),
     );
 
     console.log(`[ResendOTP] Response sent, email queued for ${email}`);
@@ -461,7 +461,7 @@ export const login = async (req, res) => {
       return res.status(403).json({
         error: "ACCOUNT_LOCKED",
         message: `Tài khoản tạm khóa. Vui lòng thử lại sau ${Math.ceil(
-          lockTime / 60
+          lockTime / 60,
         )} phút`,
         lockTimeRemaining: lockTime,
       });
@@ -511,7 +511,7 @@ export const login = async (req, res) => {
     await user.addRefreshToken(
       refreshToken,
       clientInfo.userAgent,
-      clientInfo.ip
+      clientInfo.ip,
     );
 
     // Update last login
@@ -607,7 +607,7 @@ export const forgotPassword = async (req, res) => {
     // Check rate limit
     const canSendOTP = await OTPToken.checkRateLimit(
       email.toLowerCase(),
-      "reset_password"
+      "reset_password",
     );
     if (!canSendOTP) {
       // Still return success to prevent timing attacks
@@ -630,7 +630,7 @@ export const forgotPassword = async (req, res) => {
       email.toLowerCase(),
       "reset_password",
       user._id,
-      clientInfo
+      clientInfo,
     );
 
     // ✅ Return response IMMEDIATELY (security: same response even if user not found)
@@ -642,11 +642,11 @@ export const forgotPassword = async (req, res) => {
         const emailResult = await emailService.sendOTP(
           email,
           otp,
-          "reset_password"
+          "reset_password",
         );
         console.log(
           `[ForgotPassword] Email sent for ${email}:`,
-          emailResult.correlationId
+          emailResult.correlationId,
         );
 
         // Update audit log with correlation ID
@@ -661,12 +661,12 @@ export const forgotPassword = async (req, res) => {
               "metadata.emailCorrelationId": emailResult.correlationId,
               "metadata.emailDuration": emailResult.duration,
             },
-          }
+          },
         );
       } catch (err) {
         console.error(
           `[ForgotPassword] Failed to send email for ${email}:`,
-          err.message
+          err.message,
         );
       }
     });
@@ -677,7 +677,7 @@ export const forgotPassword = async (req, res) => {
       email: user.email,
       ...clientInfo,
     }).catch((err) =>
-      console.error("[ForgotPassword] Audit log failed:", err.message)
+      console.error("[ForgotPassword] Audit log failed:", err.message),
     );
 
     AuditLog.log("otp_sent", {
@@ -686,7 +686,7 @@ export const forgotPassword = async (req, res) => {
       ...clientInfo,
       metadata: { purpose: "reset_password" },
     }).catch((err) =>
-      console.error("[ForgotPassword] Audit log failed:", err.message)
+      console.error("[ForgotPassword] Audit log failed:", err.message),
     );
 
     console.log(`[ForgotPassword] Response sent, email queued for ${email}`);
@@ -723,7 +723,7 @@ export const verifyResetOTP = async (req, res) => {
     // Find OTP token
     const otpToken = await OTPToken.findActiveOTP(
       email.toLowerCase(),
-      "reset_password"
+      "reset_password",
     );
 
     if (!otpToken) {
@@ -760,7 +760,7 @@ export const verifyResetOTP = async (req, res) => {
     const resetToken = jwt.sign(
       { userId: otpToken.userId, purpose: "reset_password" },
       process.env.JWT_SECRET,
-      { expiresIn: "10m" }
+      { expiresIn: "10m" },
     );
 
     // Audit log
@@ -920,12 +920,12 @@ export const refreshToken = async (req, res) => {
 
     // Generate new tokens
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(
-      foundUser._id
+      foundUser._id,
     );
     await foundUser.addRefreshToken(
       newRefreshToken,
       clientInfo.userAgent,
-      clientInfo.ip
+      clientInfo.ip,
     );
 
     res.status(200).json({

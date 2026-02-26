@@ -17,11 +17,11 @@ export const getStats = async (req, res) => {
         User.countDocuments(),
         User.countDocuments({ "subscription.plan": "pro" }),
         PaymentTransaction.aggregate([
-          { $match: { status: "success" } },
+          { $match: { status: "matched" } },
           { $group: { _id: null, total: { $sum: "$amount" } } },
         ]),
         PaymentTransaction.aggregate([
-          { $match: { status: "success", createdAt: { $gte: today } } },
+          { $match: { status: "matched", createdAt: { $gte: today } } },
           { $group: { _id: null, total: { $sum: "$amount" } } },
         ]),
         PaymentTransaction.countDocuments({ status: "unmatched" }),

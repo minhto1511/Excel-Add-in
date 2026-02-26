@@ -78,7 +78,7 @@ const AdminTransactions = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case "success":
+      case "matched":
         return (
           <Badge appearance="filled" color="success">
             Paid
@@ -117,7 +117,7 @@ const AdminTransactions = () => {
           onOptionSelect={(e, data) => setStatus(data.optionValue)}
         >
           <Option value="all">Tất cả</Option>
-          <Option value="success">Paid</Option>
+          <Option value="matched">Paid</Option>
           <Option value="unmatched">Unmatched</Option>
         </Dropdown>
         <Button icon={<ArrowSync24Regular />} onClick={fetchTransactions} />
@@ -127,7 +127,7 @@ const AdminTransactions = () => {
         <Table size="small">
           <TableHeader>
             <TableRow>
-              <TableHeaderCell>Mã giao dịch (Casso)</TableHeaderCell>
+              <TableHeaderCell>Mã giao dịch</TableHeaderCell>
               <TableHeaderCell>Thời gian</TableHeaderCell>
               <TableHeaderCell>Số tiền</TableHeaderCell>
               <TableHeaderCell>Nội dung</TableHeaderCell>

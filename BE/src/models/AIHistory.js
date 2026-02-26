@@ -12,7 +12,7 @@ const aiHistorySchema = new Schema(
 
     type: {
       type: String,
-      enum: ["formula", "analysis", "guide", "vba"],
+      enum: ["formula", "analysis", "guide", "vba", "chart"],
       required: true,
       index: true,
     },

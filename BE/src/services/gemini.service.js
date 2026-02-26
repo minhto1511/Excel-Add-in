@@ -286,9 +286,18 @@ JSON SCHEMA:
   "recommendations": ["Đề xuất hành động dựa trên data"],
   "warnings": ["Cảnh báo về chất lượng dữ liệu (VD: thiếu dữ liệu, date lỗi...)"],
   "chartSuggestion": {
-    "type": "column|line|pie|bar|null",
+    "type": "column|line|pie|bar|area|doughnut|scatter|null",
     "title": "Tên biểu đồ đề xuất",
-    "description": "Giải thích tại sao chọn biểu đồ này. Nếu không thể vẽ, để null."
+    "description": "Giải thích tại sao chọn biểu đồ này. Nếu không thể vẽ, để null.",
+    "dataRange": "Range dữ liệu cho biểu đồ (VD: A1:D10). Lấy từ usedRange trong context."
+  },
+  "pivotSuggestion": {
+    "recommended": true,
+    "rowFields": ["Tên cột text để làm Row (Group by)"],
+    "valueFields": ["Tên cột số để làm Value (SUM/AVG)"],
+    "columnFields": ["Tên cột date/category cho Column (optional, có thể rỗng)"],
+    "filterFields": ["Tên cột để lọc (optional, có thể rỗng)"],
+    "description": "Giải thích cấu trúc PivotTable đề xuất. Nếu không phù hợp, recommended=false."
   }
 }`;
 
@@ -323,6 +332,32 @@ JSON OUTPUT (copy chính xác format này):
       "warning": "Lưu ý quan trọng (optional)"
     }
   ]
+}`;
+
+const CHART_SYSTEM_PROMPT = `Bạn là CHUYÊN GIA VISUALIZATION. Phân tích dữ liệu và đề xuất biểu đồ phù hợp.
+
+BẮT BUỘC: CHỈ TRẢ VỀ JSON THUẦN TÚY.
+
+CHART TYPES (sử dụng đúng tên):
+- ColumnClustered: So sánh giá trị
+- Line: Xu hướng theo thời gian
+- Pie: Tỷ lệ phần trăm
+- BarClustered: So sánh ngang
+- Area: Xu hướng tích lũy
+- XYScatter: Tương quan 2 biến
+
+QUY TẮC:
+1. Phân tích CONTEXT để hiểu cấu trúc dữ liệu
+2. Chọn chartType phù hợp nhất với yêu cầu
+3. dataRange phải là vùng chứa data (bao gồm header)
+4. title ngắn gọn, mô tả nội dung chart
+
+JSON OUTPUT:
+{
+  "chartType": "ColumnClustered",
+  "dataRange": "A1:D10",
+  "title": "Doanh thu theo tháng",
+  "seriesBy": "columns"
 }`;
 
 const VBA_SYSTEM_PROMPT = `Bạn là CHUYÊN GIA VBA EXCEL chuyên nghiệp (15 năm kinh nghiệm).
@@ -588,6 +623,71 @@ ${excelContext.sampleData ? `Sample Data:\n${JSON.stringify(excelContext.sampleD
     }
 
     throw new Error("Không thể trích xuất hướng dẫn. Thử mô tả ngắn gọn hơn!");
+  }
+}
+
+/**
+ * Generate chart configuration from prompt and Excel context
+ * @param {string} prompt - User's description of what chart to create
+ * @param {object} excelContext - Excel context data (required for chart)
+ * @param {object} options - { signal, model }
+ */
+export async function generateChartConfig(
+  prompt,
+  excelContext = null,
+  options = {},
+) {
+  if (!prompt || !prompt.trim()) {
+    throw new Error("Mô tả biểu đồ không được rỗng!");
+  }
+
+  console.log("📊 Generating Chart Config for:", prompt.substring(0, 50));
+
+  try {
+    const { signal, model } = options;
+    const selectedModel = ensureModel(model);
+
+    // Format context
+    let contextSection = "";
+    if (excelContext) {
+      contextSection = `\n\n[EXCEL CONTEXT]
+Sheet: ${excelContext.sheetName || "Sheet1"}
+Columns: ${excelContext.columns?.join(", ") || "N/A"}
+${excelContext.sampleData ? `Sample Data:\n${JSON.stringify(excelContext.sampleData.slice(0, 5), null, 2)}` : ""}
+[END CONTEXT]`;
+    }
+
+    const payload = {
+      contents: [
+        {
+          parts: [
+            {
+              text: `${CHART_SYSTEM_PROMPT}${contextSection}\n\nYêu cầu: ${prompt}`,
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 2048,
+        responseMimeType: "application/json",
+      },
+    };
+
+    const result = await callGenerateContent(selectedModel, payload, {
+      signal,
+    });
+    const cleanText = cleanJSONResponse(result.text);
+
+    const parsed = JSON.parse(cleanText);
+    if (!parsed.chartType || !parsed.dataRange) {
+      throw new Error("Invalid chart config: missing chartType or dataRange");
+    }
+
+    return parsed;
+  } catch (error) {
+    console.error("Chart Config Generation Error:", error);
+    throw new Error(`Lỗi tạo biểu đồ: ${error.message}`);
   }
 }
 

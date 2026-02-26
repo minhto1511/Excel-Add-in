@@ -24,13 +24,17 @@ const router = Router();
 // ==================== PUBLIC ROUTES ====================
 
 // Register new user (sends OTP)
-router.post("/register", registerLimiter, register);
+// [TESTING] Tạm comment rate limiter để test nhiều
+// router.post("/register", registerLimiter, register);
+router.post("/register", register);
 
 // Verify email OTP
 router.post("/verify-email-otp", verifyEmailOTP);
 
 // Resend OTP
-router.post("/resend-otp", otpLimiter, resendOTP);
+// [TESTING] Tạm comment rate limiter để test nhiều
+// router.post("/resend-otp", otpLimiter, resendOTP);
+router.post("/resend-otp", resendOTP);
 
 // Login
 router.post("/login", loginLimiter, login);

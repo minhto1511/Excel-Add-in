@@ -106,8 +106,12 @@ const FormulaGenerator = ({ disabled = false, onRequestComplete }) => {
     } catch (err) {
       if (err.name === "AbortError") {
         setError("Đã hủy yêu cầu");
+      } else if (err.message?.includes("Failed to fetch") || err.message?.includes("NetworkError")) {
+        setError("Lỗi kết nối mạng! Kiểm tra kết nối internet và thử lại.");
+      } else if (err.message?.includes("timeout") || err.message?.includes("Timeout")) {
+        setError("Yêu cầu quá thời gian. Vui lòng thử lại.");
       } else {
-        setError(err.message || "Đã xảy ra lỗi!");
+        setError(err.message || "Đã xảy ra lỗi không xác định!");
       }
     } finally {
       setIsLoading(false);

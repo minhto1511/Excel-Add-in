@@ -33,18 +33,21 @@ export const askAI = async (req, res) => {
     if (!type) {
       return res
         .status(400)
-        .json({ message: "Thiếu type (formula/analysis/guide/vba)" });
+        .json({ message: "Thiếu type (formula/analysis/guide/vba/chart)" });
     }
 
-    if (!["formula", "analysis", "guide", "vba"].includes(type)) {
+    if (!["formula", "analysis", "guide", "vba", "chart"].includes(type)) {
       return res.status(400).json({
-        message: "Type không hợp lệ. Chấp nhận: formula, analysis, guide, vba",
+        message:
+          "Type không hợp lệ. Chấp nhận: formula, analysis, guide, vba, chart",
       });
     }
 
-    // Validate prompt for formula, guide, and vba
     if (
-      (type === "formula" || type === "guide" || type === "vba") &&
+      (type === "formula" ||
+        type === "guide" ||
+        type === "vba" ||
+        type === "chart") &&
       (!prompt || !prompt.trim())
     ) {
       return res.status(400).json({ message: "Thiếu prompt" });
@@ -53,7 +56,12 @@ export const askAI = async (req, res) => {
     // ============================================
     // VALIDATE PROMPT QUALITY - Tránh lãng phí credits
     // ============================================
-    if (type === "formula" || type === "guide" || type === "vba") {
+    if (
+      type === "formula" ||
+      type === "guide" ||
+      type === "vba" ||
+      type === "chart"
+    ) {
       // Chuẩn hóa: lowercase, bỏ dấu câu, trim
       const cleanPrompt = prompt
         .trim()
@@ -178,6 +186,16 @@ export const askAI = async (req, res) => {
             ...options,
             model,
           });
+          break;
+        case "chart":
+          aiResult = await geminiService.generateChartConfig(
+            prompt,
+            excelContext,
+            {
+              ...options,
+              model,
+            },
+          );
           break;
       }
     } catch (aiError) {
