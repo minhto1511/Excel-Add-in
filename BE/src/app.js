@@ -28,6 +28,9 @@ app.use(
       "https://excel-add-in-six.vercel.app",
       "https://excel-add-in-git-main-minhto1511s-projects.vercel.app",
       "https://excel-add-in-jbfg5qld4-minhto1511s-projects.vercel.app",
+      // External payment page (eofficeai.io.vn)
+      "https://eofficeai.io.vn",
+      "https://www.eofficeai.io.vn",
       process.env.ALLOWED_ORIGINS,
     ].filter(Boolean),
     credentials: true,
