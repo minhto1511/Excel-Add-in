@@ -8,6 +8,7 @@ import {
   getTransactions,
   getUsers,
   getWebhookLogs,
+  upgradeUserToPro,
 } from "../controllers/admin.controller.js";
 import {
   manualMatchTransaction,
@@ -36,6 +37,7 @@ router.post("/transactions/manual-match", manualMatchTransaction);
  * User Management
  */
 router.get("/users", getUsers);
+router.post("/users/:userId/upgrade", upgradeUserToPro);
 
 /**
  * Webhook Logs

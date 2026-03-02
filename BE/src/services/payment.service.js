@@ -257,6 +257,20 @@ class PaymentService {
     if (intent.isExpired()) {
       intent.status = "expired";
       await intent.save();
+
+      // Vẫn tạo transaction để admin có thể manual match
+      await PaymentTransaction.createFromWebhook({
+        providerTxId,
+        intentId: intent._id,
+        userId: intent.userId,
+        amount,
+        description,
+        transferCode,
+        status: "unmatched",
+        provider: "vietqr_sepay",
+        rawPayload: tx,
+      });
+
       return { status: "expired", error: "INTENT_EXPIRED" };
     }
 

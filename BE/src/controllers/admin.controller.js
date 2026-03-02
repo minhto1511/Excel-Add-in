@@ -5,8 +5,65 @@ import WebhookLog from "../models/WebhookLog.js";
 import AuditLog from "../models/AuditLog.js";
 
 /**
- * Lấy thống kê tổng quan cho Dashboard
+ * Admin: Nâng cấp user lên Pro thủ công
  */
+export const upgradeUserToPro = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { plan = "pro_monthly" } = req.body;
+
+    const validPlans = ["pro_monthly", "pro_yearly"];
+    if (!validPlans.includes(plan)) {
+      return res.status(400).json({
+        error: "INVALID_PLAN",
+        message: "Gói không hợp lệ. Chọn pro_monthly hoặc pro_yearly",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: "USER_NOT_FOUND",
+        message: "Không tìm thấy người dùng",
+      });
+    }
+
+    await user.upgradeToPro(plan);
+
+    // Audit log
+    await AuditLog.log("admin_manual_upgrade", {
+      userId: req.user._id,
+      metadata: {
+        targetUserId: userId,
+        targetEmail: user.email,
+        plan,
+      },
+    });
+
+    res.status(200).json({
+      message: `Đã nâng cấp ${user.email} lên ${plan === "pro_monthly" ? "Pro Tháng" : "Pro Năm"}`,
+      user: {
+        _id: user._id,
+        email: user.email,
+        name: user.name,
+        subscription: user.subscription,
+      },
+    });
+  } catch (error) {
+    console.error("Admin upgrade user error:", error);
+    res
+      .status(500)
+      .json({ error: "INTERNAL_ERROR", message: "Lỗi nâng cấp user" });
+  }
+};
+
+/**
+ * Lấy thống kê tổng quan cho Dashboard
+ * Chỉ tính từ ngày 6/2 (Feb 6) trở đi
+ */
+// Mốc thời gian hệ thống bắt đầu tính
+const SYSTEM_START_DATE = new Date("2026-02-06T00:00:00.000Z");
+
 export const getStats = async (req, res) => {
   try {
     const today = new Date();
@@ -17,7 +74,12 @@ export const getStats = async (req, res) => {
         User.countDocuments(),
         User.countDocuments({ "subscription.plan": "pro" }),
         PaymentTransaction.aggregate([
-          { $match: { status: "matched" } },
+          {
+            $match: {
+              status: "matched",
+              createdAt: { $gte: SYSTEM_START_DATE },
+            },
+          },
           { $group: { _id: null, total: { $sum: "$amount" } } },
         ]),
         PaymentTransaction.aggregate([

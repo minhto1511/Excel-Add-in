@@ -64,7 +64,7 @@ const AdminTransactions = () => {
 
     try {
       setMatchLoading(true);
-      await manualMatchTransaction(selectedTx.providerTxId, manualIntentId);
+      await manualMatchTransaction(selectedTx._id, manualIntentId);
       setShowMatchDialog(false);
       fetchTransactions(); // Refresh list
       alert("Khớp giao dịch thành công!");

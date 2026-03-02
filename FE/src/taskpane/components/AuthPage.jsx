@@ -722,7 +722,7 @@ const AuthPage = ({ onLoginSuccess }) => {
         open={showOTPDialog}
         onOpenChange={(e, data) => !isLoading && setShowOTPDialog(data.open)}
       >
-        <DialogSurface>
+        <DialogSurface className="otp-dialog-surface">
           <DialogBody>
             <DialogTitle>{otpPurpose === "signup" ? "Xác thực Email" : "Nhập mã OTP"}</DialogTitle>
             <DialogContent>

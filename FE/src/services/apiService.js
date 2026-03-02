@@ -647,7 +647,10 @@ function mapChartType(type) {
  */
 function cleanRangeAddress(address) {
   if (!address || typeof address !== "string") return null;
-  const cleaned = address.replace(/^'?[^'!]+'?!/, "").replace(/^[^!]+!/, "").trim();
+  const cleaned = address
+    .replace(/^'?[^'!]+'?!/, "")
+    .replace(/^[^!]+!/, "")
+    .trim();
   if (/^[A-Z]+\d+(:[A-Z]+\d+)?$/i.test(cleaned)) {
     return cleaned;
   }
@@ -692,13 +695,19 @@ function analyzeRangeData(values) {
     if (totalNonEmpty === 0) continue; // skip empty columns
 
     // Detect ID-like columns: sequential integers 1,2,3... or header contains STT/ID/Mã/No
-    const headerName = String(headerRow[col] || "").toLowerCase().trim();
+    const headerName = String(headerRow[col] || "")
+      .toLowerCase()
+      .trim();
     const isIdHeader = /^(stt|id|mã|ma|no\.?|#|số tt|sốtt|ordinal)$/i.test(headerName);
-    const isSequential = numericValues.length >= 2 &&
+    const isSequential =
+      numericValues.length >= 2 &&
       numericValues.every((v, i) => i === 0 || v === numericValues[i - 1] + 1) &&
       numericValues[0] === 1;
 
-    if (isIdHeader || (isSequential && numCount === totalNonEmpty && numericValues.length === dataRows.length)) {
+    if (
+      isIdHeader ||
+      (isSequential && numCount === totalNonEmpty && numericValues.length === dataRows.length)
+    ) {
       idCols.push(col);
       continue; // Skip ID columns entirely
     }
@@ -832,7 +841,8 @@ async function getSmartDataRange(context, sheet) {
     const rangeAddr = `${startColLetter}${startRow}:${endColLetter}${startRow + lastDataRow}`;
 
     console.log(
-      "[SmartRange] Detected first table:", rangeAddr,
+      "[SmartRange] Detected first table:",
+      rangeAddr,
       `(${detectedRows}r × ${detectedCols}c of ${usedRange.rowCount}r × ${usedRange.columnCount}c)`
     );
 
@@ -881,8 +891,11 @@ export async function createChartInExcel(chartSuggestion, excelContext = null) {
       const liveUsedRange = await getSmartDataRange(context, sheet);
 
       console.log("[Chart] Sheet:", sheet.name);
-      console.log("[Chart] Smart range:", liveUsedRange.address,
-        `(${liveUsedRange.rowCount}r × ${liveUsedRange.columnCount}c)`);
+      console.log(
+        "[Chart] Smart range:",
+        liveUsedRange.address,
+        `(${liveUsedRange.rowCount}r × ${liveUsedRange.columnCount}c)`
+      );
 
       if (liveUsedRange.rowCount < 2) {
         throw new Error("Cần ít nhất 2 hàng (header + data) để tạo biểu đồ!");
@@ -894,16 +907,18 @@ export async function createChartInExcel(chartSuggestion, excelContext = null) {
       const allValues = liveUsedRange.values;
       const analysis = analyzeRangeData(allValues);
 
-      console.log("[Chart] Data analysis:",
+      console.log(
+        "[Chart] Data analysis:",
         `textCols=[${analysis.textCols}]`,
         `numCols=[${analysis.numCols}]`,
         `idCols=[${analysis.idCols}]`,
-        `headers=[${analysis.headerRow.slice(0, 8)}]`);
+        `headers=[${analysis.headerRow.slice(0, 8)}]`
+      );
 
       if (analysis.numCols.length === 0) {
         throw new Error(
           "Không tìm thấy cột dữ liệu số nào! Biểu đồ cần ít nhất 1 cột chứa số. " +
-          `Các cột hiện tại: ${analysis.headerRow.join(", ")}`
+            `Các cột hiện tại: ${analysis.headerRow.join(", ")}`
         );
       }
 
@@ -936,8 +951,11 @@ export async function createChartInExcel(chartSuggestion, excelContext = null) {
       // Sort by column index to maintain order
       chartColIndices.sort((a, b) => a - b);
 
-      console.log("[Chart] Selected columns (relative):", chartColIndices,
-        isPieType ? "(PIE - 1 value only)" : `(${analysis.numCols.length} value cols)`);
+      console.log(
+        "[Chart] Selected columns (relative):",
+        chartColIndices,
+        isPieType ? "(PIE - 1 value only)" : `(${analysis.numCols.length} value cols)`
+      );
 
       // Build the actual Excel range
       let dataRange;
@@ -946,8 +964,8 @@ export async function createChartInExcel(chartSuggestion, excelContext = null) {
       if (chartColIndices.length >= 2 && liveUsedRange.columnCount > 2) {
         // Nhiều cột → chỉ lấy các cột cần thiết
         // Kiểm tra xem các cột có liên tiếp không
-        const isContiguous = chartColIndices.every((col, i) =>
-          i === 0 || col === chartColIndices[i - 1] + 1
+        const isContiguous = chartColIndices.every(
+          (col, i) => i === 0 || col === chartColIndices[i - 1] + 1
         );
 
         if (isContiguous) {
@@ -958,7 +976,9 @@ export async function createChartInExcel(chartSuggestion, excelContext = null) {
           const endColLetter = getColLetter(lastAbsCol);
           // Determine actual start row from range address
           // Safe: strip sheet name before extracting row (sheet name may contain digits)
-          const chartCellRef = liveUsedRange.address.includes("!") ? liveUsedRange.address.split("!").pop() : liveUsedRange.address;
+          const chartCellRef = liveUsedRange.address.includes("!")
+            ? liveUsedRange.address.split("!").pop()
+            : liveUsedRange.address;
           const chartStartRow = parseInt((chartCellRef.match(/\d+/) || ["1"])[0], 10);
           const rangeAddr = `${startColLetter}${chartStartRow}:${endColLetter}${chartStartRow + totalRows - 1}`;
           dataRange = sheet.getRange(rangeAddr);
@@ -977,8 +997,11 @@ export async function createChartInExcel(chartSuggestion, excelContext = null) {
       dataRange.load("address, rowCount, columnCount");
       await context.sync();
 
-      console.log("[Chart] Final dataRange:", dataRange.address,
-        `(${dataRange.rowCount}r × ${dataRange.columnCount}c)`);
+      console.log(
+        "[Chart] Final dataRange:",
+        dataRange.address,
+        `(${dataRange.rowCount}r × ${dataRange.columnCount}c)`
+      );
 
       // ═══════════════════════════════════════════════════════
       // STEP 4: Tạo chart
@@ -1033,9 +1056,14 @@ export async function createChartInExcel(chartSuggestion, excelContext = null) {
         }
       }
 
-      console.log("✅ Chart created:", chartSuggestion.title,
-        "| type:", chartTypeName,
-        "| range:", rangeDescription);
+      console.log(
+        "✅ Chart created:",
+        chartSuggestion.title,
+        "| type:",
+        chartTypeName,
+        "| range:",
+        rangeDescription
+      );
     });
 
     return { success: true, chartType: chartType, title: chartSuggestion.title };
@@ -1072,8 +1100,11 @@ export async function createPivotTableInExcel(pivotConfig = {}, excelContext = n
       // ═══════════════════════════════════════════════════════
       const liveRange = await getSmartDataRange(context, sourceSheet);
 
-      console.log("[Pivot] Source:", liveRange.address,
-        `${liveRange.rowCount}r × ${liveRange.columnCount}c`);
+      console.log(
+        "[Pivot] Source:",
+        liveRange.address,
+        `${liveRange.rowCount}r × ${liveRange.columnCount}c`
+      );
 
       if (liveRange.rowCount < 2) {
         throw new Error("Cần ít nhất 2 hàng dữ liệu (1 header + 1 data) để tạo PivotTable!");
@@ -1141,7 +1172,7 @@ export async function createPivotTableInExcel(pivotConfig = {}, excelContext = n
       if (numHeaders.length === 0) {
         throw new Error(
           "Cần ít nhất 1 cột chứa số để tạo PivotTable ý nghĩa. " +
-          `Các cột: [${realHeaders.join(", ")}]`
+            `Các cột: [${realHeaders.join(", ")}]`
         );
       }
 
@@ -1263,7 +1294,7 @@ export async function createPivotTableInExcel(pivotConfig = {}, excelContext = n
       if (addedCount === 0) {
         throw new Error(
           "Không thể thêm trường nào vào PivotTable. " +
-          `Headers: [${realHeaders.join(", ")}]. Available: [${availableFields.join(", ")}]`
+            `Headers: [${realHeaders.join(", ")}]. Available: [${availableFields.join(", ")}]`
         );
       }
 
@@ -1281,9 +1312,9 @@ export async function createPivotTableInExcel(pivotConfig = {}, excelContext = n
     if (msg.includes("InvalidArgument") || msg.includes("invalid or missing")) {
       throw new Error(
         "Dữ liệu không phù hợp cho PivotTable. Kiểm tra: " +
-        "(1) Hàng đầu tiên phải là tiêu đề rõ ràng, " +
-        "(2) Không có ô merge, " +
-        "(3) Không có hàng trống xen giữa dữ liệu."
+          "(1) Hàng đầu tiên phải là tiêu đề rõ ràng, " +
+          "(2) Không có ô merge, " +
+          "(3) Không có hàng trống xen giữa dữ liệu."
       );
     }
     throw new Error("Không thể tạo PivotTable: " + msg);
@@ -1302,7 +1333,9 @@ export function suggestPivotConfig(excelContext) {
 
   // Skip ID-like columns (STT, ID, Mã, No, #...)
   const isIdColumn = (col) => {
-    const name = String(col.name || "").toLowerCase().trim();
+    const name = String(col.name || "")
+      .toLowerCase()
+      .trim();
     return /^(stt|id|mã|ma|no\.?|#|số tt|sốtt|ordinal)$/i.test(name);
   };
 
@@ -1418,6 +1451,16 @@ export async function getWebhookLogs(page = 1, limit = 50, status = "") {
   return apiCall(url);
 }
 
+/**
+ * Admin: Nâng cấp user lên Pro thủ công
+ */
+export async function adminUpgradeUser(userId, plan = "pro_monthly") {
+  return apiCall(`/admin/users/${userId}/upgrade`, {
+    method: "POST",
+    body: JSON.stringify({ plan }),
+  });
+}
+
 // ============================================================================
 // EXPORT
 // ============================================================================
@@ -1466,4 +1509,5 @@ export default {
   manualMatchTransaction,
   getAdminUsers,
   getWebhookLogs,
+  adminUpgradeUser,
 };
