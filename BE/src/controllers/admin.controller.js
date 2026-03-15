@@ -64,30 +64,59 @@ export const upgradeUserToPro = async (req, res) => {
 // Mốc thời gian hệ thống bắt đầu tính
 const SYSTEM_START_DATE = new Date("2026-02-06T00:00:00.000Z");
 
+// FIX CỨNG DOANH THU GIAI ĐOẠN ĐẦU:
+// - LEGACY_FIXED_REVENUE: tổng doanh thu đã đối soát thủ công (ví dụ từ 6/2 tới 15/3)
+// - LEGACY_REVENUE_LOCK_DATE: chỉ cộng thêm các giao dịch MATCHED sau mốc này
+// => Dashboard hiển thị: DOANH THU = LEGACY_FIXED_REVENUE + doanh thu phát sinh mới
+const LEGACY_FIXED_REVENUE = 9398000; // 9.398.000 đ - tổng đã chốt trong file Excel (bỏ phần lẻ 5đ)
+const LEGACY_REVENUE_LOCK_DATE = new Date("2099-01-01T00:00:00.000Z"); // tạm thời không cộng thêm doanh thu động
+
 export const getStats = async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [totalUsers, proUsers, totalRevenue, todayRevenue, unmatchedCount] =
-      await Promise.all([
-        User.countDocuments(),
-        User.countDocuments({ "subscription.plan": "pro" }),
-        PaymentTransaction.aggregate([
-          {
-            $match: {
-              status: "matched",
-              createdAt: { $gte: SYSTEM_START_DATE },
-            },
+    const [
+      totalUsers,
+      proUsers,
+      postLockRevenue,
+      todayRevenue,
+      unmatchedCount,
+    ] = await Promise.all([
+      // Tổng số user kể từ ngày hệ thống bắt đầu tính
+      User.countDocuments({ createdAt: { $gte: SYSTEM_START_DATE } }),
+      // Số user Pro kể từ ngày hệ thống bắt đầu tính
+      User.countDocuments({
+        "subscription.plan": "pro",
+        createdAt: { $gte: SYSTEM_START_DATE },
+      }),
+      // Doanh thu phát sinh SAU khi đã chốt số liệu legacy
+      // (hiện tại LEGACY_REVENUE_LOCK_DATE đặt rất xa trong tương lai nên kết quả ~ 0)
+      PaymentTransaction.aggregate([
+        {
+          $match: {
+            status: "matched",
+            createdAt: { $gte: LEGACY_REVENUE_LOCK_DATE },
           },
-          { $group: { _id: null, total: { $sum: "$amount" } } },
-        ]),
-        PaymentTransaction.aggregate([
-          { $match: { status: "matched", createdAt: { $gte: today } } },
-          { $group: { _id: null, total: { $sum: "$amount" } } },
-        ]),
-        PaymentTransaction.countDocuments({ status: "unmatched" }),
-      ]);
+        },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+      // Doanh thu của riêng hôm nay (realtime)
+      PaymentTransaction.aggregate([
+        { $match: { status: "matched", createdAt: { $gte: today } } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+      PaymentTransaction.countDocuments({ status: "unmatched" }),
+    ]);
+
+    // Tổng doanh thu hiển thị trên Dashboard:
+    // - Phần cố định đã đối soát: LEGACY_FIXED_REVENUE = 9.398.000
+    // - Cộng thêm doanh thu mới phát sinh sau LEGACY_REVENUE_LOCK_DATE
+    const dynamicRevenue =
+      postLockRevenue && postLockRevenue.length > 0
+        ? postLockRevenue[0].total
+        : 0;
+    const totalRevenueForDashboard = LEGACY_FIXED_REVENUE + dynamicRevenue;
 
     res.status(200).json({
       users: {
@@ -95,7 +124,7 @@ export const getStats = async (req, res) => {
         pro: proUsers,
       },
       revenue: {
-        total: totalRevenue[0]?.total || 0,
+        total: totalRevenueForDashboard,
         today: todayRevenue[0]?.total || 0,
       },
       alerts: {
