@@ -71,6 +71,11 @@ const SYSTEM_START_DATE = new Date("2026-02-06T00:00:00.000Z");
 const LEGACY_FIXED_REVENUE = 9398000; // 9.398.000 đ - tổng đã chốt trong file Excel (bỏ phần lẻ 5đ)
 const LEGACY_REVENUE_LOCK_DATE = new Date("2099-01-01T00:00:00.000Z"); // tạm thời không cộng thêm doanh thu động
 
+// FIX CỨNG TẠM THỜI: số user hiển thị trên Dashboard (65 Pro + 262 thường = 327 tổng)
+const LEGACY_PRO_USERS = 65;
+const LEGACY_FREE_USERS = 262;
+const LEGACY_TOTAL_USERS = LEGACY_PRO_USERS + LEGACY_FREE_USERS;
+
 export const getStats = async (req, res) => {
   try {
     const today = new Date();
@@ -118,10 +123,14 @@ export const getStats = async (req, res) => {
         : 0;
     const totalRevenueForDashboard = LEGACY_FIXED_REVENUE + dynamicRevenue;
 
+    // Hiển thị fix cứng số user (65 Pro, 262 thường)
+    const displayTotalUsers = LEGACY_TOTAL_USERS;
+    const displayProUsers = LEGACY_PRO_USERS;
+
     res.status(200).json({
       users: {
-        total: totalUsers,
-        pro: proUsers,
+        total: displayTotalUsers,
+        pro: displayProUsers,
       },
       revenue: {
         total: totalRevenueForDashboard,

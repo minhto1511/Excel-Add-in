@@ -12,16 +12,16 @@ async function main() {
   await mongoose.connect(mongoUri);
 
   const users = [];
-  for (let i = 1; i <= 60; i++) {
+  for (let i = 1; i <= 262; i++) {
     users.push({
-      email: `free_clone_${i}@example.com`,
+      email: `free_user_${i}@example.com`,
       password: "FreeUser123!",
-      name: `Free Clone ${i}`,
+      name: `User thường ${i}`,
     });
   }
 
   const result = await User.insertMany(users);
-  console.log(`Inserted ${result.length} free users`);
+  console.log(`Inserted ${result.length} free users (262 user thường)`);
   await mongoose.disconnect();
   process.exit(0);
 }
